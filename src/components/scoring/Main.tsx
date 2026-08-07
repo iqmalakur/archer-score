@@ -232,6 +232,7 @@ export const Main = () => {
                     ),
                   );
                   setStep(1);
+                  setCurrentEnd(1);
                 }}
               >
                 Ulangi lagi
