@@ -1,4 +1,4 @@
-# 🏹 Archery Scoring
+# 🏹 ArcherScore
 
 A web app for recording and calculating archery practice scores. Configure the number of ends, arrows per end, and target score values, then log each arrow's score and see results in real time.
 
@@ -12,13 +12,13 @@ A web app for recording and calculating archery practice scores. Configure the n
 
 ## 🛠️ Tech Stack
 
-| Technology | Version |
-| --- | --- |
-| [Next.js](https://nextjs.org) | 16.3.0 |
-| [React](https://react.dev) | 19.2.8 |
-| [TypeScript](https://www.typescriptlang.org) | ^5 |
-| [Tailwind CSS](https://tailwindcss.com) | ^4 |
-| [pnpm](https://pnpm.io) | 11.10.0 |
+| Technology                                   | Version |
+| -------------------------------------------- | ------- |
+| [Next.js](https://nextjs.org)                | 16.3.0  |
+| [React](https://react.dev)                   | 19.2.8  |
+| [TypeScript](https://www.typescriptlang.org) | ^5      |
+| [Tailwind CSS](https://tailwindcss.com)      | ^4      |
+| [pnpm](https://pnpm.io)                      | 11.10.0 |
 
 ## 📁 Project Structure
 
@@ -47,7 +47,7 @@ src/app/
 ```bash
 # Clone the repository
 git clone <repo-url>
-cd archery-scoring
+cd archer-score
 
 # Install dependencies
 pnpm install
