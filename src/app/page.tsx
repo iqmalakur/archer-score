@@ -2,7 +2,7 @@ import { Main } from "@/components/scoring/Main";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-linear-to-b from-background via-surface-muted/40 to-background text-ink transition-colors duration-300">
+    <div className="bg-linear-to-b from-background via-surface-muted/40 to-background text-ink transition-colors duration-300">
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-10 opacity-40"
