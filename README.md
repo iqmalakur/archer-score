@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏹 Archery Scoring
 
-## Getting Started
+A web app for recording and calculating archery practice scores. Configure the number of ends, arrows per end, and target score values, then log each arrow's score and see results in real time.
 
-First, run the development server:
+## ✨ Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Per-arrow scoring** — select scores via intuitive radio buttons for each end.
+- **Flexible settings** — configure ends, arrows per end, and target score range.
+- **Real-time results** — view total score, percentage, and pass/fail status with an animated ring chart.
+- **Dark mode** — toggle light/dark theme with system preference support.
+- **Responsive** — mobile-first design that works across all screen sizes.
+
+## 🛠️ Tech Stack
+
+| Technology | Version |
+| --- | --- |
+| [Next.js](https://nextjs.org) | 16.3.0 |
+| [React](https://react.dev) | 19.2.8 |
+| [TypeScript](https://www.typescriptlang.org) | ^5 |
+| [Tailwind CSS](https://tailwindcss.com) | ^4 |
+| [pnpm](https://pnpm.io) | 11.10.0 |
+
+## 📁 Project Structure
+
+```
+src/app/
+├── layout.tsx              # Root layout (Inter font, metadata)
+├── page.tsx                # Home page
+├── globals.css             # Design tokens & global styles
+└── components/
+    ├── Main.tsx            # Main component (state management)
+    ├── Setting.tsx         # Settings form (ends, arrows, scores)
+    ├── End.tsx             # End card with per-arrow score input
+    ├── Result.tsx          # Ring chart & results summary
+    └── ThemeToggle.tsx     # Light/dark theme toggle
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Getting Started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Prerequisites
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [Node.js](https://nodejs.org) (≥ 18)
+- [pnpm](https://pnpm.io) (≥ 11)
 
-## Learn More
+### Installation
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Clone the repository
+git clone <repo-url>
+cd archery-scoring
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Install dependencies
+pnpm install
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Development
 
-## Deploy on Vercel
+```bash
+pnpm dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Build & Production
+
+```bash
+pnpm build
+pnpm start
+```
+
+### Lint
+
+```bash
+pnpm lint
+```
+
+## 📖 Usage
+
+1. **Open settings** — expand the "⚙️ Settings" section to configure the number of ends, arrows per end, and target scores.
+2. **Record scores** — in each end, tap a score button for every arrow.
+3. **View results** — scroll to the "🏆 Results" section to see total score, percentage, and pass/fail status.
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
