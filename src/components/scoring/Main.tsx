@@ -47,7 +47,7 @@ export const Main = () => {
       top: 0,
       behavior: "instant",
     });
-  }, [step]);
+  }, [step, currentEnd]);
 
   return (
     <>
