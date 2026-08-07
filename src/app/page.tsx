@@ -1,4 +1,4 @@
-import { Main } from "@/components/Main";
+import { Main } from "@/components/scoring/Main";
 
 export default function Home() {
   return (

@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { End } from "./End";
-import { Setting } from "./Setting";
 import { Result } from "./Result";
 
 export const Main = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [endCount, setEndCount] = useState(4);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [arrowCount, setArrowCount] = useState(5);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [targetScores, setTargetScores] = useState([1, 2, 3, 4, 5, 6]);
   const [userScores, setUserScores] = useState<number[][]>(() =>
     Array.from({ length: endCount }, () => Array(arrowCount).fill(0)),
@@ -16,7 +18,7 @@ export const Main = () => {
   return (
     <>
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 pb-14 sm:p-8 lg:gap-8">
-        <section className="animate-[fadeInUp_0.5s_ease-out_both] rounded-2xl border border-white/20 bg-surface/75 shadow-xl backdrop-blur-xl">
+        {/* <section className="animate-[fadeInUp_0.5s_ease-out_both] rounded-2xl border border-white/20 bg-surface/75 shadow-xl backdrop-blur-xl">
           <details className="group px-5 py-5 sm:px-8">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 sm:py-1">
               <h2 className="flex items-center gap-2 text-lg font-semibold text-ink sm:text-xl">
@@ -64,7 +66,7 @@ export const Main = () => {
               />
             </div>
           </details>
-        </section>
+        </section> */}
 
         <section className="animate-[fadeInUp_0.5s_ease-out_0.1s_both] rounded-2xl border border-white/20 bg-surface/70 p-5 shadow-xl backdrop-blur-xl sm:p-8">
           <h2 className="mb-5 flex items-center justify-center gap-2 text-lg font-semibold text-ink sm:text-xl">
