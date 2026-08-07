@@ -4,7 +4,6 @@ import { useState } from "react";
 import { End } from "./End";
 import { Setting } from "./Setting";
 import { Result } from "./Result";
-import { ThemeToggle } from "./ThemeToggle";
 
 export const Main = () => {
   const [endCount, setEndCount] = useState(4);
@@ -16,15 +15,6 @@ export const Main = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-line bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3 sm:px-8">
-          <h1 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-            ArcherScore
-          </h1>
-          <ThemeToggle />
-        </div>
-      </header>
-
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 pb-14 sm:p-8 lg:gap-8">
         <section className="animate-[fadeInUp_0.5s_ease-out_both] rounded-2xl border border-white/20 bg-surface/75 shadow-xl backdrop-blur-xl">
           <details className="group px-5 py-5 sm:px-8">
