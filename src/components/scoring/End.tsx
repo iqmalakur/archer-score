@@ -40,7 +40,7 @@ export const End = ({
               >
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium text-ink-muted">
-                    Panah {arrowNumber}
+                    Skor Panah {arrowNumber}
                   </h4>
 
                   {scores[arrowIndex] !== 0 && (
