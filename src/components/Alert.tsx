@@ -38,8 +38,7 @@ const typeConfig: Record<
     ),
     iconBg: "bg-amber-100 dark:bg-amber-500/20",
     iconColor: "text-amber-500",
-    confirmBtn:
-      "bg-amber-500 shadow-amber-500/30",
+    confirmBtn: "bg-amber-500 shadow-amber-500/30",
   },
   danger: {
     icon: (
@@ -152,13 +151,13 @@ export const Alert = ({
 
           <div className="flex w-full gap-3">
             <button
-              className="flex-1 rounded-xl border border-line bg-surface px-6 py-3 font-semibold text-ink-muted transition-all hover:bg-surface-muted"
+              className="flex-1 cursor-pointer rounded-xl border border-line bg-surface px-6 py-3 font-semibold text-ink-muted transition-all hover:bg-surface-muted"
               onClick={onCancel}
             >
               Batal
             </button>
             <button
-              className={`flex-1 rounded-xl px-6 py-3 font-semibold text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.97] ${confirmBtn}`}
+              className={`flex-1 cursor-pointer rounded-xl px-6 py-3 font-semibold text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.97] ${confirmBtn}`}
               onClick={onConfirm}
             >
               Konfirmasi

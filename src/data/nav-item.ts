@@ -7,8 +7,4 @@ export const navItem = [
     label: "Riwayat",
     url: "/history",
   },
-  {
-    label: "Pengaturan",
-    url: "/setting",
-  },
 ];

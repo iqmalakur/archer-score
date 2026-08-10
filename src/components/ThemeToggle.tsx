@@ -4,7 +4,14 @@ import type { SVGProps } from "react";
 import { useEffect } from "react";
 
 const Sun = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" {...props}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.8}
+    stroke="currentColor"
+    {...props}
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -14,7 +21,14 @@ const Sun = (props: SVGProps<SVGSVGElement>) => (
 );
 
 const Moon = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" {...props}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.8}
+    stroke="currentColor"
+    {...props}
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -26,9 +40,14 @@ const Moon = (props: SVGProps<SVGSVGElement>) => (
 export const ThemeToggle = () => {
   useEffect(() => {
     const stored = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
     const dark = stored ? stored === "dark" : prefersDark;
-    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    document.documentElement.setAttribute(
+      "data-theme",
+      dark ? "dark" : "light",
+    );
   }, []);
 
   const toggle = () => {
@@ -43,7 +62,7 @@ export const ThemeToggle = () => {
       type="button"
       onClick={toggle}
       aria-label="Ganti tema terang/gelap"
-      className="relative flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-sm transition-transform duration-150 hover:scale-105 active:scale-95"
+      className="relative flex cursor-pointer h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-sm transition-transform duration-150 hover:scale-105 active:scale-95"
     >
       <Sun className="h-5 w-5 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100" />
