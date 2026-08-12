@@ -5,6 +5,8 @@ import { End } from "./End";
 import { Result } from "./Result";
 import { Setup } from "./Setup";
 import { Alert } from "../Alert";
+import { LoadingScreen } from "../LoadingScreen";
+import { SetupType } from "@/types/setup";
 
 export const Main = () => {
   const [endCount, setEndCount] = useState(4);
@@ -28,6 +30,7 @@ export const Main = () => {
     message: "",
     type: "warning",
   });
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const closeAlert = () => {
     setAlertState({
@@ -40,11 +43,44 @@ export const Main = () => {
   };
 
   useEffect(() => {
+    const storedSetup = localStorage.getItem("setup");
+    const setup = {
+      endCount: 4,
+      arrowCount: 5,
+      targetScores: [1, 2, 3, 4, 5, 6],
+    };
+
+    if (!storedSetup) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsHydrated(true);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedSetup) as SetupType;
+
+      setup.endCount = parsed.endCount ?? setup.endCount;
+      setup.arrowCount = parsed.arrowCount ?? setup.arrowCount;
+      setup.targetScores = parsed.targetScores ?? setup.targetScores;
+
+      setEndCount(setup.endCount);
+      setArrowCount(setup.arrowCount);
+      setTargetScores(setup.targetScores);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
     window.scrollTo({
       top: 0,
       behavior: "instant",
     });
   }, [step, currentEnd]);
+
+  if (!isHydrated) return <LoadingScreen />;
 
   return (
     <>
@@ -71,6 +107,14 @@ export const Main = () => {
                   ),
                 );
                 setStep(2);
+                localStorage.setItem(
+                  "setup",
+                  JSON.stringify({
+                    endCount: newEndCount,
+                    arrowCount: newArrowCount,
+                    targetScores: newTargetScores,
+                  }),
+                );
               }}
             />
           </section>
