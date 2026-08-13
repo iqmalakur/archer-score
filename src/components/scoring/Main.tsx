@@ -7,6 +7,7 @@ import { Setup } from "./Setup";
 import { Alert } from "../Alert";
 import { LoadingScreen } from "../LoadingScreen";
 import { SetupType } from "@/types/setup";
+import { EndSessionType } from "@/types/end-session";
 
 export const Main = () => {
   const [endCount, setEndCount] = useState(4);
@@ -31,6 +32,7 @@ export const Main = () => {
     type: "warning",
   });
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isEndStarted, setIsEndStarted] = useState(false);
 
   const closeAlert = () => {
     setAlertState({
@@ -43,34 +45,39 @@ export const Main = () => {
   };
 
   useEffect(() => {
+    const storedSession = localStorage.getItem("endSession");
+
+    if (storedSession) {
+      try {
+        const parsed = JSON.parse(storedSession) as EndSessionType;
+
+        if (parsed.isStarted) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setCurrentEnd((prev) => parsed.currentEnd ?? prev);
+          setUserScores((prev) => parsed.userScores ?? prev);
+          setStep(2);
+          setIsEndStarted(true);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
     const storedSetup = localStorage.getItem("setup");
-    const setup = {
-      endCount: 4,
-      arrowCount: 5,
-      targetScores: [1, 2, 3, 4, 5, 6],
-    };
 
-    if (!storedSetup) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsHydrated(true);
-      return;
+    if (storedSetup) {
+      try {
+        const parsed = JSON.parse(storedSetup) as SetupType;
+
+        setEndCount((prev) => parsed.endCount ?? prev);
+        setArrowCount((prev) => parsed.arrowCount ?? prev);
+        setTargetScores((prev) => parsed.targetScores ?? prev);
+      } catch (error) {
+        console.error(error);
+      }
     }
 
-    try {
-      const parsed = JSON.parse(storedSetup) as SetupType;
-
-      setup.endCount = parsed.endCount ?? setup.endCount;
-      setup.arrowCount = parsed.arrowCount ?? setup.arrowCount;
-      setup.targetScores = parsed.targetScores ?? setup.targetScores;
-
-      setEndCount(setup.endCount);
-      setArrowCount(setup.arrowCount);
-      setTargetScores(setup.targetScores);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsHydrated(true);
-    }
+    setIsHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -79,6 +86,20 @@ export const Main = () => {
       behavior: "instant",
     });
   }, [step, currentEnd]);
+
+  const updateEndSession = (endSession: EndSessionType) => {
+    localStorage.setItem("endSession", JSON.stringify(endSession));
+  };
+
+  useEffect(() => {
+    if (isEndStarted) {
+      updateEndSession({
+        userScores,
+        currentEnd,
+        isStarted: true,
+      });
+    }
+  }, [currentEnd, isEndStarted, userScores]);
 
   if (!isHydrated) return <LoadingScreen />;
 
@@ -115,6 +136,12 @@ export const Main = () => {
                     targetScores: newTargetScores,
                   }),
                 );
+                updateEndSession({
+                  userScores,
+                  currentEnd,
+                  isStarted: true,
+                });
+                setIsEndStarted(true);
               }}
             />
           </section>
@@ -166,6 +193,8 @@ export const Main = () => {
                           ),
                         );
                         setStep(1);
+                        localStorage.removeItem("endSession");
+                        setIsEndStarted(false);
                       },
                     });
                   }}
@@ -191,7 +220,11 @@ export const Main = () => {
                       title: "Selesaikan scoring?",
                       message:
                         "Hasil akhir akan dihitung dan ditampilkan berdasarkan skor yang sudah diinput.",
-                      callback: () => setStep(3),
+                      callback: () => {
+                        setStep(3);
+                        localStorage.removeItem("endSession");
+                        setIsEndStarted(false);
+                      },
                     });
                   }}
                 >
