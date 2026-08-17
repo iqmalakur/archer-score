@@ -8,8 +8,11 @@ import { Alert, AlertProps } from "../Alert";
 import { LoadingScreen } from "../LoadingScreen";
 import { SetupType } from "@/types/setup";
 import { EndSessionType } from "@/types/end-session";
+import { db } from "@/lib/db";
 
 export const Main = () => {
+  const [title, setTitle] = useState("");
+  const [distance, setDistance] = useState(8);
   const [endCount, setEndCount] = useState(4);
   const [arrowCount, setArrowCount] = useState(5);
   const [targetScores, setTargetScores] = useState([1, 2, 3, 4, 5, 6]);
@@ -53,6 +56,8 @@ export const Main = () => {
             confirmText: "Lanjutkan",
             cancelText: "Buat ulang sesi",
             onConfirm: () => {
+              setTitle((prev) => parsed.title ?? prev);
+              setDistance((prev) => parsed.distance ?? prev);
               setCurrentEnd((prev) => parsed.currentEnd ?? prev);
               setUserScores((prev) => parsed.userScores ?? prev);
               setStep(2);
@@ -99,12 +104,14 @@ export const Main = () => {
   useEffect(() => {
     if (isEndStarted) {
       updateEndSession({
+        title,
+        distance,
         userScores,
         currentEnd,
         isStarted: true,
       });
     }
-  }, [currentEnd, isEndStarted, userScores]);
+  }, [currentEnd, distance, isEndStarted, title, userScores]);
 
   if (!isHydrated) return <LoadingScreen />;
 
@@ -120,10 +127,20 @@ export const Main = () => {
               Scoring Setup
             </h2>
             <Setup
+              initialTitle={title}
+              initialDistance={distance}
               initialEndCount={endCount}
               initialArrowCount={arrowCount}
               initialTargetScores={targetScores}
-              onChange={(newEndCount, newArrowCount, newTargetScores) => {
+              onChange={(
+                newEndCount,
+                newArrowCount,
+                newTargetScores,
+                newTitle,
+                newDistance,
+              ) => {
+                setTitle(newTitle);
+                setDistance(newDistance);
                 setEndCount(newEndCount);
                 setArrowCount(newArrowCount);
                 setTargetScores(newTargetScores);
@@ -141,11 +158,6 @@ export const Main = () => {
                     targetScores: newTargetScores,
                   }),
                 );
-                updateEndSession({
-                  userScores,
-                  currentEnd,
-                  isStarted: true,
-                });
                 setIsEndStarted(true);
               }}
             />
@@ -230,6 +242,15 @@ export const Main = () => {
                       confirmText: "Selesai",
                       cancelText: "Batal",
                       onConfirm: () => {
+                        db.addPractice({
+                          title,
+                          distance,
+                          arrowCount,
+                          endCount,
+                          targetScores,
+                          userScores,
+                          createdAt: new Date(),
+                        });
                         setStep(3);
                         localStorage.removeItem("endSession");
                         setIsEndStarted(false);

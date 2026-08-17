@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 
 export interface SetupProps {
+  initialTitle: string;
+  initialDistance: number;
   initialEndCount: number;
   initialArrowCount: number;
   initialTargetScores: number[];
@@ -10,6 +12,8 @@ export interface SetupProps {
     endCount: number,
     arrowCount: number,
     targetScores: number[],
+    title: string,
+    distance: number,
   ) => void;
 }
 
@@ -20,14 +24,20 @@ const PRESETS = [
   { id: "5-10", label: "Ring 5 - 10", scores: [5, 6, 7, 8, 9, 10] },
 ];
 
+const DISTANCE_PRESETS = [4, 6, 8, 10, 12, 14, 16, 18, 20];
+
 const ALL_AVAILABLE_SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export const Setup = ({
+  initialTitle,
+  initialDistance,
   initialEndCount,
   initialArrowCount,
   initialTargetScores,
   onChange,
 }: SetupProps) => {
+  const [title, setTitle] = useState(initialTitle);
+  const [distance, setDistance] = useState(initialDistance);
   const [endCount, setEndCount] = useState(initialEndCount);
   const [arrowCount, setArrowCount] = useState(initialArrowCount);
   const [targetScores, setTargetScores] = useState<number[]>(
@@ -71,6 +81,63 @@ export const Setup = ({
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4 shadow-xs transition-all duration-200 hover:border-primary/40">
+        <label
+          htmlFor="title-input"
+          className="text-xs font-semibold uppercase tracking-wider text-ink-muted"
+        >
+          Nama Sesi / Catatan
+        </label>
+        <input
+          id="title-input"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="misal: Latihan Sore 18m"
+          className="w-full rounded-xl border border-line bg-surface-muted/60 px-3.5 py-2.5 text-sm font-medium text-ink transition-all placeholder:text-ink-muted/50 focus:border-primary focus:bg-surface focus:outline-none"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4 shadow-xs transition-all duration-200 hover:border-primary/40">
+        <div className="flex items-center justify-between">
+          <label
+            htmlFor="distance-input"
+            className="text-xs font-semibold uppercase tracking-wider text-ink-muted"
+          >
+            Jarak (Meter)
+          </label>
+          <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-bold text-primary-dark dark:text-primary">
+            {distance}m
+          </span>
+        </div>
+        <input
+          id="distance-input"
+          type="number"
+          min={1}
+          max={150}
+          value={distance || ""}
+          onChange={(e) => setDistance(Math.max(0, Number(e.target.value)))}
+          placeholder="18"
+          className="w-full rounded-xl border border-line bg-surface-muted/60 px-3.5 py-2 text-sm font-bold text-ink transition-all focus:border-primary focus:bg-surface focus:outline-none"
+        />
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {DISTANCE_PRESETS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDistance(d)}
+              className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+                distance === d
+                  ? "bg-primary text-white shadow-xs"
+                  : "border border-line bg-surface-muted/60 text-ink-muted hover:bg-surface-muted hover:text-ink"
+              }`}
+            >
+              {d}m
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4 shadow-xs transition-all duration-200 hover:border-primary/40">
           <div className="flex items-center justify-between">
@@ -87,7 +154,7 @@ export const Setup = ({
               aria-label="Kurangi rambahan"
               disabled={endCount <= 1}
               onClick={() => setEndCount((prev) => Math.max(1, prev - 1))}
-              className="flex cursor-pointer h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-surface-muted text-xl font-bold text-ink transition-all hover:border-primary hover:bg-primary/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+              className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface-muted text-xl font-bold text-ink transition-all hover:border-primary hover:bg-primary/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
             >
               −
             </button>
@@ -101,7 +168,7 @@ export const Setup = ({
               aria-label="Tambah rambahan"
               disabled={endCount >= 20}
               onClick={() => setEndCount((prev) => Math.min(20, prev + 1))}
-              className="flex cursor-pointer h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-surface-muted text-xl font-bold text-ink transition-all hover:border-primary hover:bg-primary/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+              className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface-muted text-xl font-bold text-ink transition-all hover:border-primary hover:bg-primary/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
             >
               +
             </button>
@@ -123,7 +190,7 @@ export const Setup = ({
               aria-label="Kurangi panah"
               disabled={arrowCount <= 1}
               onClick={() => setArrowCount((prev) => Math.max(1, prev - 1))}
-              className="flex cursor-pointer h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-surface-muted text-xl font-bold text-ink transition-all hover:border-primary hover:bg-primary/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+              className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface-muted text-xl font-bold text-ink transition-all hover:border-primary hover:bg-primary/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
             >
               −
             </button>
@@ -137,7 +204,7 @@ export const Setup = ({
               aria-label="Tambah panah"
               disabled={arrowCount >= 12}
               onClick={() => setArrowCount((prev) => Math.min(12, prev + 1))}
-              className="flex cursor-pointer h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-surface-muted text-xl font-bold text-ink transition-all hover:border-primary hover:bg-primary/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+              className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-surface-muted text-xl font-bold text-ink transition-all hover:border-primary hover:bg-primary/10 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
             >
               +
             </button>
@@ -145,10 +212,10 @@ export const Setup = ({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-xs">
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 shadow-xs sm:p-5">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <label className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
-            🎯 Pilihan Skor Target
+            Pilihan Skor Target
           </label>
           <span className="text-xs text-ink-muted">
             {targetScores.length} skor aktif
@@ -163,7 +230,7 @@ export const Setup = ({
                 key={preset.id}
                 type="button"
                 onClick={() => applyPreset(preset.scores)}
-                className={`rounded-lg cursor-pointer px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
                   isActive
                     ? "bg-primary text-white shadow-xs"
                     : "border border-line bg-surface-muted/60 text-ink-muted hover:bg-surface-muted hover:text-ink"
@@ -183,7 +250,7 @@ export const Setup = ({
                 key={score}
                 type="button"
                 onClick={() => toggleScore(score)}
-                className={`flex cursor-pointer h-11 items-center justify-center rounded-xl text-sm font-bold shadow-xs transition-all duration-150 ${
+                className={`flex h-11 cursor-pointer items-center justify-center rounded-xl text-sm font-bold shadow-xs transition-all duration-150 ${
                   isSelected
                     ? "scale-105 border-2 border-primary bg-primary text-white shadow-md shadow-primary/30"
                     : "border border-line bg-surface-muted/40 text-ink-muted hover:border-primary/50 hover:text-ink"
@@ -227,8 +294,10 @@ export const Setup = ({
       <button
         type="button"
         disabled={targetScores.length === 0}
-        onClick={() => onChange(endCount, arrowCount, targetScores)}
-        className="group relative flex cursor-pointer w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-linear-to-r from-primary to-primary-dark px-6 py-4 text-base font-bold text-white shadow-lg shadow-primary/30 transition-all duration-200 hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+        onClick={() =>
+          onChange(endCount, arrowCount, targetScores, title, distance)
+        }
+        className="group relative flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl bg-linear-to-r from-primary to-primary-dark px-6 py-4 text-base font-bold text-white shadow-lg shadow-primary/30 transition-all duration-200 hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
       >
         <span>Mulai Scoring</span>
         <svg
