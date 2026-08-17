@@ -4,8 +4,10 @@ export interface AlertProps {
   title: string;
   show: boolean;
   message?: string;
+  confirmText?: string;
+  cancelText?: string;
   type?: "warning" | "success" | "danger" | "info";
-  onCancel: () => void;
+  onCancel?: () => void;
   onConfirm?: () => void;
 }
 
@@ -112,6 +114,8 @@ export const Alert = ({
   title,
   show,
   message,
+  confirmText = "Konfirmasi",
+  cancelText = "Batal",
   type = "warning",
   onCancel,
   onConfirm,
@@ -154,13 +158,13 @@ export const Alert = ({
               className="flex-1 cursor-pointer rounded-xl border border-line bg-surface px-6 py-3 font-semibold text-ink-muted transition-all hover:bg-surface-muted"
               onClick={onCancel}
             >
-              Batal
+              {cancelText}
             </button>
             <button
               className={`flex-1 cursor-pointer rounded-xl px-6 py-3 font-semibold text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.97] ${confirmBtn}`}
               onClick={onConfirm}
             >
-              Konfirmasi
+              {confirmText}
             </button>
           </div>
         </div>

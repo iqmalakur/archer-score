@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { End } from "./End";
 import { Result } from "./Result";
 import { Setup } from "./Setup";
-import { Alert } from "../Alert";
+import { Alert, AlertProps } from "../Alert";
 import { LoadingScreen } from "../LoadingScreen";
 import { SetupType } from "@/types/setup";
 import { EndSessionType } from "@/types/end-session";
@@ -18,30 +18,22 @@ export const Main = () => {
   );
   const [step, setStep] = useState(1);
   const [currentEnd, setCurrentEnd] = useState(1);
-  const [alertState, setAlertState] = useState<{
-    show: boolean;
-    callback?: () => void;
-    title: string;
-    message: string;
-    type: "warning" | "success" | "danger" | "info";
-  }>({
+  const defaultAlertState: AlertProps = {
     show: false,
-    callback: undefined,
+    onConfirm: undefined,
+    onCancel: undefined,
     title: "",
     message: "",
+    confirmText: undefined,
+    cancelText: undefined,
     type: "warning",
-  });
+  };
+  const [alertState, setAlertState] = useState<AlertProps>(defaultAlertState);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isEndStarted, setIsEndStarted] = useState(false);
 
   const closeAlert = () => {
-    setAlertState({
-      show: false,
-      callback: undefined,
-      title: "",
-      message: "",
-      type: "warning",
-    });
+    setAlertState(defaultAlertState);
   };
 
   useEffect(() => {
@@ -53,10 +45,23 @@ export const Main = () => {
 
         if (parsed.isStarted) {
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setCurrentEnd((prev) => parsed.currentEnd ?? prev);
-          setUserScores((prev) => parsed.userScores ?? prev);
-          setStep(2);
-          setIsEndStarted(true);
+          setAlertState({
+            show: true,
+            type: "info",
+            title: "Lanjutkan skoring?",
+            message: "Sesi skoring akan dilanjutkan dari rambahan terakhir.",
+            confirmText: "Lanjutkan",
+            cancelText: "Buat ulang sesi",
+            onConfirm: () => {
+              setCurrentEnd((prev) => parsed.currentEnd ?? prev);
+              setUserScores((prev) => parsed.userScores ?? prev);
+              setStep(2);
+              setIsEndStarted(true);
+            },
+            onCancel: () => {
+              localStorage.removeItem("endSession");
+            },
+          });
         }
       } catch (error) {
         console.error(error);
@@ -185,8 +190,10 @@ export const Main = () => {
                       type: "danger",
                       title: "Batalkan rambahan?",
                       message:
-                        "Semua skor yang sudah diinput akan dihapus dan kamu kembali ke ringkasan scoring.",
-                      callback: () => {
+                        "Semua skor yang sudah diinput pada sesi latihan ini akan dihapus.",
+                      confirmText: "Ya, batalkan",
+                      cancelText: "Batal",
+                      onConfirm: () => {
                         setUserScores(
                           Array.from({ length: endCount }, () =>
                             Array(arrowCount).fill(0),
@@ -217,10 +224,12 @@ export const Main = () => {
                     setAlertState({
                       show: true,
                       type: "success",
-                      title: "Selesaikan scoring?",
+                      title: "Selesaikan skoring?",
                       message:
                         "Hasil akhir akan dihitung dan ditampilkan berdasarkan skor yang sudah diinput.",
-                      callback: () => {
+                      confirmText: "Selesai",
+                      cancelText: "Batal",
+                      onConfirm: () => {
                         setStep(3);
                         localStorage.removeItem("endSession");
                         setIsEndStarted(false);
@@ -274,9 +283,14 @@ export const Main = () => {
         title={alertState.title}
         message={alertState.message}
         type={alertState.type}
-        onCancel={closeAlert}
+        confirmText={alertState.confirmText}
+        cancelText={alertState.cancelText}
+        onCancel={() => {
+          alertState.onCancel?.();
+          closeAlert();
+        }}
         onConfirm={() => {
-          alertState.callback?.();
+          alertState.onConfirm?.();
           closeAlert();
         }}
       />
