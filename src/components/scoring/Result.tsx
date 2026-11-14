@@ -10,7 +10,7 @@ export const Result = ({ userScores, targetScores, arrowCount, endCount, minimum
   const totalPossibleScore = Math.max(...targetScores) * arrowCount * endCount;
   const totalUserScore = userScores.flat().reduce((acc, score) => acc + score, 0);
   const percentage = (totalUserScore / totalPossibleScore) * 100;
-  const isPassed = percentage > minimumPassedScore;
+  const isPassed = percentage >= minimumPassedScore;
 
   const clamped = Math.min(100, Math.max(0, percentage));
   const radius = 52;

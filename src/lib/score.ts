@@ -22,7 +22,7 @@ export function calculateScore(
     : 0;
 
   const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
-  const isPassed = percentage > minimumPassedScore;
+  const isPassed = percentage >= minimumPassedScore;
 
   return {
     maxScore,
