@@ -12,7 +12,9 @@ export const NavLinks = ({ onNavigate }: NavLinksProps) => {
   return (
     <>
       {navItem.map((item) => {
-        const isActive = pathname === item.url;
+        const isActive =
+          pathname === item.url ||
+          (item.url !== "/" && pathname.startsWith(`${item.url}/`));
 
         return (
           <Link

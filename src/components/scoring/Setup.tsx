@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { getPracticeTitle } from "@/lib/practice-title";
 
 export interface SetupProps {
   initialTitle: string;
@@ -38,6 +39,7 @@ export const Setup = ({
 }: SetupProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [distance, setDistance] = useState(initialDistance);
+  const [sessionDate] = useState(() => new Date());
   const [endCount, setEndCount] = useState(initialEndCount);
   const [arrowCount, setArrowCount] = useState(initialArrowCount);
   const [targetScores, setTargetScores] = useState<number[]>(
@@ -93,7 +95,7 @@ export const Setup = ({
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="misal: Latihan Sore 18m"
+          placeholder={getPracticeTitle({ distance, createdAt: sessionDate })}
           className="w-full rounded-xl border border-line bg-surface-muted/60 px-3.5 py-2.5 text-sm font-medium text-ink transition-all placeholder:text-ink-muted/50 focus:border-primary focus:bg-surface focus:outline-none"
         />
       </div>

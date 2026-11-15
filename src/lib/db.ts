@@ -30,6 +30,10 @@ export class ArcherScoreDB extends Dexie {
     return this.practices.orderBy("createdAt").reverse().toArray();
   }
 
+  async getPractice(id: number): Promise<Practice | undefined> {
+    return this.practices.get(id);
+  }
+
   async removePractice(id: number): Promise<number> {
     await this.practices.delete(id);
     return id;

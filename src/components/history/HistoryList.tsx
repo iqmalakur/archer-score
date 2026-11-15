@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { db, Practice } from "@/lib/db";
 import { calculateScore } from "@/lib/score";
+import { getPracticeTitle } from "@/lib/practice-title";
 import { Alert, AlertProps } from "@/components/Alert";
 import { StatusCard } from "@/components/StatusCard";
 
@@ -43,7 +44,7 @@ export const HistoryList = () => {
       show: true,
       type: "danger",
       title: "Hapus riwayat latihan?",
-      message: `Riwayat "${practice.title || "Latihan Tanpa Judul"}" akan dihapus secara permanen.`,
+      message: `Riwayat "${getPracticeTitle(practice)}" akan dihapus secara permanen.`,
       confirmText: "Ya, Hapus",
       cancelText: "Batal",
       onConfirm: async () => {
@@ -145,6 +146,7 @@ export const HistoryList = () => {
                 calculateScore(practice);
 
               const formattedDate = formatDate(practice.createdAt);
+              const title = getPracticeTitle(practice);
 
               const scoreColorClass =
                 percentage < 40
@@ -163,9 +165,13 @@ export const HistoryList = () => {
                     <div className="flex flex-col gap-1 pr-8 sm:pr-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-base font-bold text-ink sm:text-lg">
-                          {practice.title && practice.title.trim() !== ""
-                            ? practice.title
-                            : "Latihan Tanpa Judul"}
+                          <Link
+                            href={`/history/${practice.id}`}
+                            aria-label={`Lihat detail ${title}`}
+                            className="wrap-anywhere after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-4 focus-visible:after:outline-primary"
+                          >
+                            {title}
+                          </Link>
                         </h3>
                         {practice.distance !== undefined && (
                           <span className="inline-flex items-center rounded-md border border-line bg-surface-muted px-2 py-0.5 text-xs font-medium text-ink-muted">
@@ -183,9 +189,9 @@ export const HistoryList = () => {
 
                     <button
                       type="button"
-                      aria-label={`Hapus ${practice.title || "riwayat latihan"}`}
+                      aria-label={`Hapus ${title}`}
                       onClick={() => handleDeleteRequest(practice)}
-                      className="cursor-pointer rounded-xl p-2 text-ink-muted/60 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 active:scale-95"
+                      className="relative z-10 cursor-pointer rounded-xl p-2 text-ink-muted/60 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -239,6 +245,9 @@ export const HistoryList = () => {
                       </span>
                     </div>
                   </div>
+                  <span aria-hidden className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-dark dark:text-primary">
+                    Lihat detail <span>→</span>
+                  </span>
                 </article>
               );
             })}

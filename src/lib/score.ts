@@ -1,4 +1,4 @@
-import { Practice } from "./db";
+import type { Practice } from "./db";
 
 export interface ScoreSummary {
   maxScore: number;
@@ -8,7 +8,7 @@ export interface ScoreSummary {
 }
 
 export function calculateScore(
-  practice: Practice,
+  practice: Pick<Practice, "targetScores" | "userScores" | "arrowCount" | "endCount">,
   minimumPassedScore: number = 50,
 ): ScoreSummary {
   const { targetScores, userScores, arrowCount, endCount } = practice;

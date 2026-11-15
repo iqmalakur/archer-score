@@ -1,3 +1,5 @@
+import { calculateScore } from "@/lib/score";
+
 export interface ResultProps {
   targetScores: number[];
   userScores: number[][];
@@ -7,10 +9,15 @@ export interface ResultProps {
 }
 
 export const Result = ({ userScores, targetScores, arrowCount, endCount, minimumPassedScore = 50 }: ResultProps) => {
-  const totalPossibleScore = Math.max(...targetScores) * arrowCount * endCount;
-  const totalUserScore = userScores.flat().reduce((acc, score) => acc + score, 0);
-  const percentage = (totalUserScore / totalPossibleScore) * 100;
-  const isPassed = percentage >= minimumPassedScore;
+  const {
+    maxScore: totalPossibleScore,
+    totalScore: totalUserScore,
+    percentage,
+    isPassed,
+  } = calculateScore(
+    { userScores, targetScores, arrowCount, endCount },
+    minimumPassedScore,
+  );
 
   const clamped = Math.min(100, Math.max(0, percentage));
   const radius = 52;
