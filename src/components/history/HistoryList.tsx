@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { db, Practice } from "@/lib/db";
 import { calculateScore } from "@/lib/score";
@@ -11,6 +11,11 @@ import { StatusCard } from "@/components/StatusCard";
 export const HistoryList = () => {
   const [practices, setPractices] = useState<Practice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const retrying = useRef(false);
+  const deleting = useRef(false);
+  const [pending, setPending] = useState(false);
 
   const defaultAlertState: AlertProps = {
     show: false,
@@ -24,22 +29,36 @@ export const HistoryList = () => {
   const [alertState, setAlertState] = useState<AlertProps>(defaultAlertState);
 
   useEffect(() => {
+    let cancelled = false;
     const loadPractices = async () => {
       try {
         const data = await db.getPractices();
-        setPractices(data);
+        if (!cancelled) setPractices(data);
       } catch (error) {
         console.error("Gagal memuat data riwayat latihan:", error);
+        if (!cancelled) setLoadError(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          retrying.current = false;
+        }
       }
     };
 
     loadPractices();
-  }, []);
+    return () => { cancelled = true; };
+  }, [loadAttempt]);
+
+  const retryLoad = () => {
+    if (retrying.current) return;
+    retrying.current = true;
+    setLoadError(false);
+    setLoading(true);
+    setLoadAttempt((prev) => prev + 1);
+  };
 
   const handleDeleteRequest = (practice: Practice) => {
-    if (practice.id === undefined) return;
+    if (practice.id === undefined || deleting.current) return;
     setAlertState({
       show: true,
       type: "danger",
@@ -48,15 +67,24 @@ export const HistoryList = () => {
       confirmText: "Ya, Hapus",
       cancelText: "Batal",
       onConfirm: async () => {
-        if (practice.id !== undefined) {
-          try {
-            await db.removePractice(practice.id);
-            setPractices((prev) => prev.filter((p) => p.id !== practice.id));
-          } catch (error) {
-            console.error("Gagal menghapus riwayat:", error);
-          }
+        if (practice.id === undefined || deleting.current) return;
+        deleting.current = true;
+        setPending(true);
+        try {
+          await db.removePractice(practice.id);
+          setPractices((prev) => prev.filter((p) => p.id !== practice.id));
+          setAlertState(defaultAlertState);
+        } catch (error) {
+          console.error("Gagal menghapus riwayat:", error);
+          setAlertState((prev) => ({
+            ...prev,
+            message: "Riwayat belum berhasil dihapus. Silakan coba lagi.",
+            confirmText: "Coba lagi",
+          }));
+        } finally {
+          deleting.current = false;
+          setPending(false);
         }
-        setAlertState(defaultAlertState);
       },
       onCancel: () => {
         setAlertState(defaultAlertState);
@@ -104,6 +132,24 @@ export const HistoryList = () => {
           ))}
         </div>
       </main>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <StatusCard
+        icon="⚠️"
+        title="Gagal Memuat Riwayat"
+        description="Penyimpanan browser tidak dapat dibaca. Silakan coba lagi."
+      >
+        <button
+          type="button"
+          onClick={retryLoad}
+          className="rounded-xl bg-primary px-6 py-3 font-semibold text-white"
+        >
+          Coba lagi
+        </button>
+      </StatusCard>
     );
   }
 
@@ -262,13 +308,13 @@ export const HistoryList = () => {
         type={alertState.type}
         confirmText={alertState.confirmText}
         cancelText={alertState.cancelText}
+        pending={pending}
         onCancel={() => {
+          if (deleting.current) return;
           alertState.onCancel?.();
           setAlertState(defaultAlertState);
         }}
-        onConfirm={() => {
-          alertState.onConfirm?.();
-        }}
+        onConfirm={alertState.onConfirm}
       />
     </>
   );

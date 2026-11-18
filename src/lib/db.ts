@@ -10,20 +10,42 @@ export interface Practice {
   title?: string;
   distance?: number;
   totalScore?: number;
+  sessionId?: string;
+}
+
+export interface CompletedSession {
+  sessionId: string;
+  practiceId: number;
 }
 
 export class ArcherScoreDB extends Dexie {
   practices!: Table<Practice, number>;
+  completedSessions!: Table<CompletedSession, string>;
 
-  constructor() {
-    super("ArcherScoreDB");
+  constructor(name = "ArcherScoreDB") {
+    super(name);
     this.version(1).stores({
       practices: "++id, createdAt, distance, title",
     });
+    this.version(2).stores({ completedSessions: "sessionId" });
   }
 
   async addPractice(practice: Practice): Promise<number> {
-    return this.practices.add(practice);
+    const { sessionId } = practice;
+    if (!sessionId) return this.practices.add(practice);
+
+    return this.transaction("rw", this.practices, this.completedSessions, async () => {
+      const completed = await this.completedSessions.get(sessionId);
+      if (completed) return completed.practiceId;
+
+      const practiceId = await this.practices.add(practice);
+      await this.completedSessions.add({ sessionId, practiceId });
+      return practiceId;
+    });
+  }
+
+  async getCompletedSession(sessionId: string): Promise<CompletedSession | undefined> {
+    return this.completedSessions.get(sessionId);
   }
 
   async getPractices(): Promise<Practice[]> {

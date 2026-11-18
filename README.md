@@ -20,6 +20,13 @@ A web app for recording and calculating archery practice scores. Configure the n
 | [Tailwind CSS](https://tailwindcss.com)      | ^4      |
 | [pnpm](https://pnpm.io)                      | 11.10.0 |
 
+Inter is loaded with `next/font/local` from `src/app/fonts/`.
+The Latin variable WOFF2 font (weights 100–900) was downloaded from
+[Google Fonts](https://fonts.google.com/specimen/Inter), using the
+[official stylesheet](https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap).
+Its SIL Open Font License is included in `src/app/fonts/OFL.txt`.
+Font files live in the project; builds do not download fonts.
+
 ## 📁 Project Structure
 
 ```

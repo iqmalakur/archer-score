@@ -7,8 +7,9 @@ export interface AlertProps {
   confirmText?: string;
   cancelText?: string;
   type?: "warning" | "success" | "danger" | "info";
+  pending?: boolean;
   onCancel?: () => void;
-  onConfirm?: () => void;
+  onConfirm?: () => void | Promise<void>;
 }
 
 const typeConfig: Record<
@@ -117,6 +118,7 @@ export const Alert = ({
   confirmText = "Konfirmasi",
   cancelText = "Batal",
   type = "warning",
+  pending = false,
   onCancel,
   onConfirm,
 }: AlertProps) => {
@@ -134,6 +136,7 @@ export const Alert = ({
       <div
         role="dialog"
         aria-modal="true"
+        aria-busy={pending}
         className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-2xl sm:p-8"
         style={{ animation: "dialogScaleIn 0.25s ease-out both" }}
       >
@@ -155,16 +158,22 @@ export const Alert = ({
 
           <div className="flex w-full gap-3">
             <button
+              type="button"
+              disabled={pending}
               className="flex-1 cursor-pointer rounded-xl border border-line bg-surface px-6 py-3 font-semibold text-ink-muted transition-all hover:bg-surface-muted"
               onClick={onCancel}
             >
               {cancelText}
             </button>
             <button
+              type="button"
+              disabled={pending}
               className={`flex-1 cursor-pointer rounded-xl px-6 py-3 font-semibold text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.97] ${confirmBtn}`}
               onClick={onConfirm}
             >
-              {confirmText}
+              <span role={pending ? "status" : undefined}>
+                {pending ? "Memproses..." : confirmText}
+              </span>
             </button>
           </div>
         </div>

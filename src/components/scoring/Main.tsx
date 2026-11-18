@@ -1,14 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { End } from "./End";
 import { Result } from "./Result";
 import { Setup } from "./Setup";
 import { Alert, AlertProps } from "../Alert";
 import { LoadingScreen } from "../LoadingScreen";
 import { SetupType } from "@/types/setup";
-import { EndSessionType } from "@/types/end-session";
 import { db } from "@/lib/db";
+import { getSessionId } from "@/lib/practice-session";
+import {
+  isValidDistance,
+  isValidSession,
+  isValidSetup,
+} from "@/lib/practice-validation";
+
+const storageWarning = "Penyimpanan browser tidak tersedia. Skor hanya ada di halaman ini "
+  + "dan dapat hilang saat dimuat ulang.";
 
 export const Main = () => {
   const [title, setTitle] = useState("");
@@ -34,60 +42,160 @@ export const Main = () => {
   const [alertState, setAlertState] = useState<AlertProps>(defaultAlertState);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isEndStarted, setIsEndStarted] = useState(false);
+  const [pending, setPending] = useState(false);
+  const confirming = useRef(false);
+  const completed = useRef(false);
+  const sessionId = useRef<string | undefined>(undefined);
+  const [cleanupFailed, setCleanupFailed] = useState(false);
+  const [storageMessage, setStorageMessage] = useState("");
+  const [draftBlocked, setDraftBlocked] = useState(false);
+  const [restoreFailed, setRestoreFailed] = useState(false);
+  const storageUnavailable = useRef(false);
 
   const closeAlert = () => {
     setAlertState(defaultAlertState);
   };
 
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem("endSession");
+      setCleanupFailed(false);
+    } catch {
+      setCleanupFailed(true);
+    }
+  };
+
+  const completePractice = async () => {
+    if (completed.current) return;
+    if (!sessionId.current) throw new Error("Missing session identity");
+    await db.addPractice({
+      title, distance, arrowCount, endCount, targetScores, userScores,
+      sessionId: sessionId.current,
+      createdAt: new Date(),
+    });
+    completed.current = true;
+    setIsEndStarted(false);
+    setStorageMessage("");
+    clearDraft();
+    setStep(3);
+  };
+
+  const discardDraft = () => {
+    try {
+      localStorage.removeItem("endSession");
+      setStorageMessage("");
+    } catch {
+      storageUnavailable.current = true;
+      setStorageMessage(storageWarning);
+    }
+    setDraftBlocked(false);
+    setRestoreFailed(false);
+  };
+
+  const confirmAlert = async () => {
+    if (confirming.current) return;
+    confirming.current = true;
+    setPending(true);
+
+    try {
+      await alertState.onConfirm?.();
+      closeAlert();
+    } catch (error) {
+      console.error("Gagal menyimpan latihan:", error);
+      setAlertState((prev) => ({
+        ...prev,
+        type: "danger",
+        message: "Gagal menyimpan latihan. Skor tetap tersedia di halaman ini. Silakan coba lagi.",
+        confirmText: "Coba lagi",
+      }));
+    } finally {
+      confirming.current = false;
+      setPending(false);
+    }
+  };
+
   useEffect(() => {
-    const storedSession = localStorage.getItem("endSession");
-
-    if (storedSession) {
-      try {
-        const parsed = JSON.parse(storedSession) as EndSessionType;
-
-        if (parsed.isStarted) {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setAlertState({
-            show: true,
-            type: "info",
-            title: "Lanjutkan skoring?",
-            message: "Sesi skoring akan dilanjutkan dari rambahan terakhir.",
-            confirmText: "Lanjutkan",
-            cancelText: "Buat ulang sesi",
-            onConfirm: () => {
-              setTitle((prev) => parsed.title ?? prev);
-              setDistance((prev) => parsed.distance ?? prev);
-              setCurrentEnd((prev) => parsed.currentEnd ?? prev);
-              setUserScores((prev) => parsed.userScores ?? prev);
-              setStep(2);
-              setIsEndStarted(true);
-            },
-            onCancel: () => {
-              localStorage.removeItem("endSession");
-            },
-          });
-        }
-      } catch (error) {
-        console.error(error);
-      }
+    let cancelled = false;
+    let storedSetup: string | null;
+    let storedSession: string | null;
+    try {
+      storedSetup = localStorage.getItem("setup");
+      storedSession = localStorage.getItem("endSession");
+    } catch {
+      storageUnavailable.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStorageMessage(storageWarning);
+      setIsHydrated(true);
+      return;
     }
 
-    const storedSetup = localStorage.getItem("setup");
-
-    if (storedSetup) {
-      try {
-        const parsed = JSON.parse(storedSetup) as SetupType;
-
-        setEndCount((prev) => parsed.endCount ?? prev);
-        setArrowCount((prev) => parsed.arrowCount ?? prev);
-        setTargetScores((prev) => parsed.targetScores ?? prev);
-      } catch (error) {
-        console.error(error);
+    let setup: SetupType | undefined;
+    try {
+      const parsed: unknown = storedSetup === null ? null : JSON.parse(storedSetup);
+      if (storedSetup !== null && !isValidSetup(parsed)) throw new Error("Invalid setup");
+      if (isValidSetup(parsed)) {
+        setup = parsed;
+        setEndCount(parsed.endCount);
+        setArrowCount(parsed.arrowCount);
+        setTargetScores(parsed.targetScores);
       }
+    } catch {
+      setStorageMessage("Setup tersimpan tidak valid. Silakan atur ulang latihan.");
     }
 
+    if (storedSession !== null) {
+      setDraftBlocked(true);
+      try {
+        const parsed: unknown = JSON.parse(storedSession);
+        if (!setup || !isValidSession(parsed, setup)) throw new Error("Invalid draft");
+        const sessionSetup = setup;
+        setStorageMessage("Memeriksa status draft tersimpan...");
+        const inspectSession = async () => {
+          try {
+            const id = await getSessionId(parsed, sessionSetup);
+            const saved = await db.getCompletedSession(id);
+            if (cancelled) return;
+            if (saved) {
+              completed.current = true;
+              setDraftBlocked(false);
+              setStorageMessage("Sesi ini sudah selesai. Draft lama tidak akan dilanjutkan.");
+              clearDraft();
+              return;
+            }
+            setStorageMessage("");
+            setAlertState({
+              show: true,
+              type: "info",
+              title: "Lanjutkan skoring?",
+              message: "Sesi skoring akan dilanjutkan dari rambahan terakhir.",
+              confirmText: "Lanjutkan",
+              cancelText: "Buat ulang sesi",
+              onConfirm: () => {
+                sessionId.current = id;
+                setTitle(parsed.title ?? "");
+                setDistance(parsed.distance ?? 8);
+                setCurrentEnd(parsed.currentEnd);
+                setUserScores(parsed.userScores);
+                setDraftBlocked(false);
+                setStep(2);
+                setIsEndStarted(true);
+              },
+              onCancel: discardDraft,
+            });
+          } catch {
+            if (cancelled) return;
+            setRestoreFailed(true);
+            setStorageMessage("Gagal memeriksa status draft. Draft tetap disimpan. Silakan periksa ulang.");
+          }
+        };
+        void inspectSession();
+      } catch {
+        setStorageMessage("Draft tidak valid atau tidak cocok dengan setup. "
+          + "Draft tetap disimpan sampai Anda memilih buat sesi baru.");
+      }
+    }
     setIsHydrated(true);
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -97,19 +205,18 @@ export const Main = () => {
     });
   }, [step, currentEnd]);
 
-  const updateEndSession = (endSession: EndSessionType) => {
-    localStorage.setItem("endSession", JSON.stringify(endSession));
-  };
-
   useEffect(() => {
-    if (isEndStarted) {
-      updateEndSession({
-        title,
-        distance,
-        userScores,
-        currentEnd,
-        isStarted: true,
-      });
+    if (isEndStarted && !completed.current && !storageUnavailable.current) {
+      try {
+        localStorage.setItem("endSession", JSON.stringify({
+          title, distance, userScores, currentEnd, isStarted: true,
+          sessionId: sessionId.current,
+        }));
+      } catch {
+        storageUnavailable.current = true;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setStorageMessage(storageWarning);
+      }
     }
   }, [currentEnd, distance, isEndStarted, title, userScores]);
 
@@ -118,6 +225,29 @@ export const Main = () => {
   return (
     <>
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 pb-14 sm:p-8 lg:gap-8">
+        {storageMessage && (
+          <div role="alert" className="rounded-xl border border-line bg-surface p-4 text-sm">
+            {storageMessage}
+            {restoreFailed && (
+              <button type="button" onClick={() => window.location.reload()} className="ml-2 underline">
+                Periksa ulang draft
+              </button>
+            )}
+            {draftBlocked && !alertState.show && (
+              <button type="button" onClick={discardDraft} className="ml-2 underline">
+                Buat sesi baru dan buang draft
+              </button>
+            )}
+          </div>
+        )}
+        {cleanupFailed && (
+          <div role="alert" className="rounded-xl border border-line bg-surface p-4 text-sm">
+            Sesi sudah selesai, tetapi draft belum dapat dihapus.
+            <button type="button" onClick={clearDraft} className="ml-2 underline">
+              Coba hapus draft lagi
+            </button>
+          </div>
+        )}
         {step === 1 && (
           <section className="animate-[fadeInUp_0.5s_ease-out_0.1s_both] rounded-2xl border border-white/20 bg-surface/50 p-5 shadow-xl backdrop-blur-xl sm:p-8">
             <h2 className="mb-4 flex items-center justify-center gap-2 text-lg font-semibold text-ink sm:text-xl">
@@ -126,41 +256,61 @@ export const Main = () => {
               </span>
               Scoring Setup
             </h2>
-            <Setup
-              initialTitle={title}
-              initialDistance={distance}
-              initialEndCount={endCount}
-              initialArrowCount={arrowCount}
-              initialTargetScores={targetScores}
-              onChange={(
-                newEndCount,
-                newArrowCount,
-                newTargetScores,
-                newTitle,
-                newDistance,
-              ) => {
-                setTitle(newTitle);
-                setDistance(newDistance);
-                setEndCount(newEndCount);
-                setArrowCount(newArrowCount);
-                setTargetScores(newTargetScores);
-                setUserScores(
-                  Array.from({ length: newEndCount }, () =>
-                    Array(newArrowCount).fill(0),
-                  ),
-                );
-                setStep(2);
-                localStorage.setItem(
-                  "setup",
-                  JSON.stringify({
-                    endCount: newEndCount,
-                    arrowCount: newArrowCount,
-                    targetScores: newTargetScores,
-                  }),
-                );
-                setIsEndStarted(true);
-              }}
-            />
+            <fieldset disabled={draftBlocked}>
+              <Setup
+                initialTitle={title}
+                initialDistance={distance}
+                initialEndCount={endCount}
+                initialArrowCount={arrowCount}
+                initialTargetScores={targetScores}
+                onChange={(
+                  newEndCount,
+                  newArrowCount,
+                  newTargetScores,
+                  newTitle,
+                  newDistance,
+                ) => {
+                  if (draftBlocked || !isValidDistance(newDistance)
+                    || !isValidSetup({
+                      endCount: newEndCount,
+                      arrowCount: newArrowCount,
+                      targetScores: newTargetScores,
+                    })) return;
+
+                  completed.current = false;
+                  sessionId.current = crypto.randomUUID();
+                  setCleanupFailed(false);
+                  setTitle(newTitle);
+                  setDistance(newDistance);
+                  setEndCount(newEndCount);
+                  setArrowCount(newArrowCount);
+                  setTargetScores(newTargetScores);
+                  setUserScores(
+                    Array.from({ length: newEndCount }, () =>
+                      Array(newArrowCount).fill(0),
+                    ),
+                  );
+                  setStep(2);
+
+                  try {
+                    if (storageUnavailable.current) {
+                      setStorageMessage(storageWarning);
+                    } else {
+                      localStorage.setItem("setup", JSON.stringify({
+                        endCount: newEndCount,
+                        arrowCount: newArrowCount,
+                        targetScores: newTargetScores,
+                      }));
+                      setStorageMessage("");
+                    }
+                  } catch {
+                    storageUnavailable.current = true;
+                    setStorageMessage(storageWarning);
+                  }
+                  setIsEndStarted(true);
+                }}
+              />
+            </fieldset>
           </section>
         )}
 
@@ -178,8 +328,10 @@ export const Main = () => {
               targetScores={targetScores}
               scores={userScores[currentEnd - 1]}
               onScoreChange={(endIndex, arrowIndex, score) => {
+                if (confirming.current) return;
                 setUserScores((prev) => {
                   const updatedScores = [...prev];
+                  updatedScores[endIndex] = [...prev[endIndex]];
                   updatedScores[endIndex][arrowIndex] = score;
                   return updatedScores;
                 });
@@ -212,8 +364,8 @@ export const Main = () => {
                           ),
                         );
                         setStep(1);
-                        localStorage.removeItem("endSession");
                         setIsEndStarted(false);
+                        discardDraft();
                       },
                     });
                   }}
@@ -241,20 +393,7 @@ export const Main = () => {
                         "Hasil akhir akan dihitung dan ditampilkan berdasarkan skor yang sudah diinput.",
                       confirmText: "Selesai",
                       cancelText: "Batal",
-                      onConfirm: () => {
-                        db.addPractice({
-                          title,
-                          distance,
-                          arrowCount,
-                          endCount,
-                          targetScores,
-                          userScores,
-                          createdAt: new Date(),
-                        });
-                        setStep(3);
-                        localStorage.removeItem("endSession");
-                        setIsEndStarted(false);
-                      },
+                      onConfirm: completePractice,
                     });
                   }}
                 >
@@ -306,14 +445,13 @@ export const Main = () => {
         type={alertState.type}
         confirmText={alertState.confirmText}
         cancelText={alertState.cancelText}
+        pending={pending}
         onCancel={() => {
+          if (confirming.current) return;
           alertState.onCancel?.();
           closeAlert();
         }}
-        onConfirm={() => {
-          alertState.onConfirm?.();
-          closeAlert();
-        }}
+        onConfirm={confirmAlert}
       />
     </>
   );

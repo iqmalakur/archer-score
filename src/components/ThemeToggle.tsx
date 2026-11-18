@@ -39,7 +39,12 @@ const Moon = (props: SVGProps<SVGSVGElement>) => (
 
 export const ThemeToggle = () => {
   useEffect(() => {
-    const stored = localStorage.getItem("theme");
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem("theme");
+    } catch {
+      // Theme changes still work when browser storage is unavailable.
+    }
     const prefersDark = window.matchMedia(
       "(prefers-color-scheme: dark)",
     ).matches;
@@ -54,7 +59,11 @@ export const ThemeToggle = () => {
     const html = document.documentElement;
     const isDark = html.getAttribute("data-theme") === "dark";
     html.setAttribute("data-theme", isDark ? "light" : "dark");
-    localStorage.setItem("theme", isDark ? "light" : "dark");
+    try {
+      localStorage.setItem("theme", isDark ? "light" : "dark");
+    } catch {
+      // Keep the selected theme for this page even if it cannot be persisted.
+    }
   };
 
   return (

@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { getPracticeTitle } from "@/lib/practice-title";
+import { isValidDistance } from "@/lib/practice-validation";
 
 export interface SetupProps {
   initialTitle: string;
@@ -39,6 +40,8 @@ export const Setup = ({
 }: SetupProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [distance, setDistance] = useState(initialDistance);
+  const distanceInput = useRef<HTMLInputElement>(null);
+  const [showDistanceError, setShowDistanceError] = useState(false);
   const [sessionDate] = useState(() => new Date());
   const [endCount, setEndCount] = useState(initialEndCount);
   const [arrowCount, setArrowCount] = useState(initialArrowCount);
@@ -82,7 +85,18 @@ export const Setup = ({
   }, [targetScores]);
 
   return (
-    <div className="flex flex-col gap-6">
+    <form
+      className="flex flex-col gap-6"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!isValidDistance(distance)) {
+          setShowDistanceError(true);
+          distanceInput.current?.focus();
+          return;
+        }
+        onChange(endCount, arrowCount, targetScores, title, distance);
+      }}
+    >
       <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4 shadow-xs transition-all duration-200 hover:border-primary/40">
         <label
           htmlFor="title-input"
@@ -109,25 +123,42 @@ export const Setup = ({
             Jarak (Meter)
           </label>
           <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-bold text-primary-dark dark:text-primary">
-            {distance}m
+            {Number.isFinite(distance) ? `${distance}m` : "—"}
           </span>
         </div>
         <input
           id="distance-input"
+          ref={distanceInput}
           type="number"
+          required
           min={1}
           max={150}
-          value={distance || ""}
-          onChange={(e) => setDistance(Math.max(0, Number(e.target.value)))}
+          step={1}
+          aria-invalid={showDistanceError}
+          aria-describedby={showDistanceError ? "distance-error" : undefined}
+          value={Number.isFinite(distance) ? distance : ""}
+          onInvalid={() => setShowDistanceError(true)}
+          onChange={(e) => {
+            setDistance(e.target.valueAsNumber);
+            setShowDistanceError(false);
+          }}
           placeholder="18"
           className="w-full rounded-xl border border-line bg-surface-muted/60 px-3.5 py-2 text-sm font-bold text-ink transition-all focus:border-primary focus:bg-surface focus:outline-none"
         />
+        {showDistanceError && (
+          <p id="distance-error" role="alert" className="text-sm text-red-500">
+            Masukkan jarak berupa bilangan bulat antara 1 dan 150 meter.
+          </p>
+        )}
         <div className="flex flex-wrap gap-1.5 pt-1">
           {DISTANCE_PRESETS.map((d) => (
             <button
               key={d}
               type="button"
-              onClick={() => setDistance(d)}
+              onClick={() => {
+                setDistance(d);
+                setShowDistanceError(false);
+              }}
               className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
                 distance === d
                   ? "bg-primary text-white shadow-xs"
@@ -294,11 +325,8 @@ export const Setup = ({
       </div>
 
       <button
-        type="button"
+        type="submit"
         disabled={targetScores.length === 0}
-        onClick={() =>
-          onChange(endCount, arrowCount, targetScores, title, distance)
-        }
         className="group relative flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl bg-linear-to-r from-primary to-primary-dark px-6 py-4 text-base font-bold text-white shadow-lg shadow-primary/30 transition-all duration-200 hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
       >
         <span>Mulai Scoring</span>
@@ -318,6 +346,6 @@ export const Setup = ({
           />
         </svg>
       </button>
-    </div>
+    </form>
   );
 };
