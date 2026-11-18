@@ -29,6 +29,8 @@ export function isValidSession(
   setup: SetupType,
 ): value is EndSessionType {
   if (!isRecord(value)) return false;
+  const sessionSetup = getSessionSetup(value, setup);
+  if (!sessionSetup) return false;
   const { title, distance, currentEnd, userScores, isStarted, sessionId } = value;
 
   return isStarted === true
@@ -38,9 +40,15 @@ export function isValidSession(
     && (title === undefined || typeof title === "string")
     && (distance === undefined || isValidDistance(distance))
     && typeof currentEnd === "number" && Number.isInteger(currentEnd)
-    && currentEnd >= 1 && currentEnd <= setup.endCount
-    && Array.isArray(userScores) && userScores.length === setup.endCount
+    && currentEnd >= 1 && currentEnd <= sessionSetup.endCount
+    && Array.isArray(userScores) && userScores.length === sessionSetup.endCount
     && userScores.every((scores) => Array.isArray(scores)
-      && scores.length === setup.arrowCount
-      && scores.every((score) => score === 0 || setup.targetScores.includes(score)));
+      && scores.length === sessionSetup.arrowCount
+      && scores.every((score) => score === 0 || sessionSetup.targetScores.includes(score)));
+}
+
+export function getSessionSetup(value: unknown, legacySetup?: unknown): SetupType | undefined {
+  if (!isRecord(value)) return undefined;
+  const setup = Object.hasOwn(value, "setup") ? value.setup : legacySetup;
+  return isValidSetup(setup) ? setup : undefined;
 }

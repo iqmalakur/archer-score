@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { isValidDistance, isValidSession, isValidSetup } from "./practice-validation";
+import {
+  getSessionSetup, isValidDistance, isValidSession, isValidSetup,
+} from "./practice-validation";
 
 const setup = { endCount: 2, arrowCount: 2, targetScores: [1, 3, 6] };
 const session = {
@@ -11,6 +13,21 @@ const session = {
 assert.equal(isValidSetup(setup), true);
 assert.equal(isValidSession(session, setup), true);
 assert.equal(isValidSession({ ...session, title: "Sore", distance: 8 }, setup), true);
+
+const snapshot = { ...session, setup };
+const differentSetup = { endCount: 1, arrowCount: 1, targetScores: [10] };
+
+assert.deepEqual(getSessionSetup(snapshot), setup);
+assert.deepEqual(getSessionSetup(snapshot, differentSetup), setup);
+assert.deepEqual(getSessionSetup(snapshot, { broken: true }), setup);
+assert.equal(isValidSession(snapshot, differentSetup), true);
+assert.deepEqual(getSessionSetup(session, setup), setup);
+assert.equal(getSessionSetup(session), undefined);
+assert.equal(getSessionSetup({ ...snapshot, setup: null }, setup), undefined);
+assert.equal(getSessionSetup({ ...snapshot, setup: {} }, setup), undefined);
+assert.equal(isValidSession({ ...snapshot, setup: null }, setup), false);
+assert.equal(isValidSession({ ...snapshot, userScores: [[10, 0], [0, 0]] }, setup), false);
+assert.equal(isValidSession({ ...snapshot, userScores: [[0, 0], [0, 0]] }, setup), true);
 
 for (const value of [null, [], 1, "setup", {}, { ...setup, endCount: 0 },
   { ...setup, endCount: 21 }, { ...setup, endCount: 1.5 },

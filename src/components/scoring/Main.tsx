@@ -13,6 +13,7 @@ import {
   isValidDistance,
   isValidSession,
   isValidSetup,
+  getSessionSetup,
 } from "@/lib/practice-validation";
 
 const storageWarning = "Penyimpanan browser tidak tersedia. Skor hanya ada di halaman ini "
@@ -53,7 +54,7 @@ export const Main = () => {
   const storageUnavailable = useRef(false);
 
   const closeAlert = () => {
-    setAlertState(defaultAlertState);
+    setAlertState((prev) => ({ ...prev, show: false }));
   };
 
   const clearDraft = () => {
@@ -147,8 +148,8 @@ export const Main = () => {
       setDraftBlocked(true);
       try {
         const parsed: unknown = JSON.parse(storedSession);
-        if (!setup || !isValidSession(parsed, setup)) throw new Error("Invalid draft");
-        const sessionSetup = setup;
+        const sessionSetup = getSessionSetup(parsed, setup);
+        if (!sessionSetup || !isValidSession(parsed, sessionSetup)) throw new Error("Invalid draft");
         setStorageMessage("Memeriksa status draft tersimpan...");
         const inspectSession = async () => {
           try {
@@ -162,7 +163,7 @@ export const Main = () => {
               clearDraft();
               return;
             }
-            setStorageMessage("");
+            setStorageMessage("Sesi skoring tersimpan tersedia. Pilih lanjutkan atau buat sesi baru.");
             setAlertState({
               show: true,
               type: "info",
@@ -176,6 +177,10 @@ export const Main = () => {
                 setDistance(parsed.distance ?? 8);
                 setCurrentEnd(parsed.currentEnd);
                 setUserScores(parsed.userScores);
+                setEndCount(sessionSetup.endCount);
+                setArrowCount(sessionSetup.arrowCount);
+                setTargetScores(sessionSetup.targetScores);
+                setStorageMessage("");
                 setDraftBlocked(false);
                 setStep(2);
                 setIsEndStarted(true);
@@ -211,6 +216,7 @@ export const Main = () => {
         localStorage.setItem("endSession", JSON.stringify({
           title, distance, userScores, currentEnd, isStarted: true,
           sessionId: sessionId.current,
+          setup: { endCount, arrowCount, targetScores },
         }));
       } catch {
         storageUnavailable.current = true;
@@ -218,7 +224,7 @@ export const Main = () => {
         setStorageMessage(storageWarning);
       }
     }
-  }, [currentEnd, distance, isEndStarted, title, userScores]);
+  }, [arrowCount, currentEnd, distance, endCount, isEndStarted, targetScores, title, userScores]);
 
   if (!isHydrated) return <LoadingScreen />;
 
@@ -234,9 +240,20 @@ export const Main = () => {
               </button>
             )}
             {draftBlocked && !alertState.show && (
-              <button type="button" onClick={discardDraft} className="ml-2 underline">
-                Buat sesi baru dan buang draft
-              </button>
+              <>
+                {!restoreFailed && alertState.onConfirm && (
+                  <button
+                    type="button"
+                    onClick={() => setAlertState((prev) => ({ ...prev, show: true }))}
+                    className="ml-2 underline"
+                  >
+                    Lanjutkan sesi tersimpan
+                  </button>
+                )}
+                <button type="button" onClick={discardDraft} className="ml-2 underline">
+                  Buat sesi baru dan buang draft
+                </button>
+              </>
             )}
           </div>
         )}
@@ -446,6 +463,9 @@ export const Main = () => {
         confirmText={alertState.confirmText}
         cancelText={alertState.cancelText}
         pending={pending}
+        onDismiss={() => {
+          if (!confirming.current) closeAlert();
+        }}
         onCancel={() => {
           if (confirming.current) return;
           alertState.onCancel?.();

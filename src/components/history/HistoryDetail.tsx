@@ -136,7 +136,7 @@ export const HistoryDetail = ({ id }: { id: string }) => {
 
       <section aria-labelledby="ends-heading" className="flex flex-col gap-4">
         <h2 id="ends-heading" className="text-lg font-semibold text-ink">Rincian Rambahan</h2>
-        <p className="text-sm text-ink-muted">Nilai 0 belum membedakan skor yang belum diisi dengan panah meleset.</p>
+        <p className="text-sm text-ink-muted">Panah yang tidak diisi dianggap meleset dan bernilai 0.</p>
         {practice.userScores.map((scores, endIndex) => (
           <article key={endIndex} className="rounded-2xl border border-line bg-surface/75 p-5 shadow-sm sm:p-6">
             <h3 className="font-semibold text-ink">Rambahan {endIndex + 1}</h3>

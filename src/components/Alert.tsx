@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useId, useRef } from "react";
 
 export interface AlertProps {
   title: string;
@@ -9,6 +11,7 @@ export interface AlertProps {
   type?: "warning" | "success" | "danger" | "info";
   pending?: boolean;
   onCancel?: () => void;
+  onDismiss?: () => void;
   onConfirm?: () => void | Promise<void>;
 }
 
@@ -120,8 +123,27 @@ export const Alert = ({
   type = "warning",
   pending = false,
   onCancel,
+  onDismiss,
   onConfirm,
 }: AlertProps) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const messageId = useId();
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!show || !dialog) return;
+    const trigger = document.activeElement;
+    dialog.showModal();
+
+    return () => {
+      if (dialog.open) dialog.close();
+      if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus();
+    };
+  }, [show]);
+
   if (!show) {
     return null;
   }
@@ -129,55 +151,69 @@ export const Alert = ({
   const { icon, iconBg, iconColor, confirmBtn } = typeConfig[type];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-      style={{ animation: "overlayFadeIn 0.2s ease-out both" }}
+    <dialog
+      ref={dialogRef}
+      aria-modal="true"
+      aria-busy={pending}
+      aria-labelledby={titleId}
+      aria-describedby={message ? messageId : undefined}
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!pending) (onDismiss ?? onCancel)?.();
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Tab" || pending) return;
+        const boundary = event.shiftKey ? cancelRef.current : confirmRef.current;
+        if (document.activeElement !== boundary) return;
+        event.preventDefault();
+        (event.shiftKey ? confirmRef.current : cancelRef.current)?.focus();
+      }}
+      className="m-auto max-h-[calc(100%_-_2rem)] w-[calc(100%_-_2rem)] max-w-md
+        overflow-y-auto rounded-2xl border border-line bg-surface p-6 text-ink shadow-2xl
+        backdrop:bg-black/50 backdrop:backdrop-blur-sm sm:p-8"
+      style={{ animation: "dialogScaleIn 0.25s ease-out both" }}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-busy={pending}
-        className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-2xl sm:p-8"
-        style={{ animation: "dialogScaleIn 0.25s ease-out both" }}
-      >
-        <div className="flex flex-col items-center gap-4 text-center">
-          <span
-            className={`flex h-12 w-12 items-center justify-center rounded-full ${iconBg} ${iconColor}`}
+      <div className="flex flex-col items-center gap-4 text-center">
+        <span
+          className={`flex h-12 w-12 items-center justify-center rounded-full ${iconBg} ${iconColor}`}
+        >
+          {icon}
+        </span>
+
+        <div>
+          <h2 id={titleId} className="text-lg font-semibold text-ink sm:text-xl">
+            {title}
+          </h2>
+          {message && (
+            <p id={messageId} className="mt-1 text-sm text-ink-muted">{message}</p>
+          )}
+        </div>
+
+        <div className="flex w-full gap-3">
+          <button
+            ref={cancelRef}
+            type="button"
+            disabled={pending}
+            className="flex-1 cursor-pointer rounded-xl border border-line bg-surface px-6 py-3
+              font-semibold text-ink-muted transition-all hover:bg-surface-muted"
+            onClick={onCancel}
           >
-            {icon}
-          </span>
-
-          <div>
-            <h2 className="text-lg font-semibold text-ink sm:text-xl">
-              {title}
-            </h2>
-            {message && (
-              <p className="mt-1 text-sm text-ink-muted">{message}</p>
-            )}
-          </div>
-
-          <div className="flex w-full gap-3">
-            <button
-              type="button"
-              disabled={pending}
-              className="flex-1 cursor-pointer rounded-xl border border-line bg-surface px-6 py-3 font-semibold text-ink-muted transition-all hover:bg-surface-muted"
-              onClick={onCancel}
-            >
-              {cancelText}
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              className={`flex-1 cursor-pointer rounded-xl px-6 py-3 font-semibold text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.97] ${confirmBtn}`}
-              onClick={onConfirm}
-            >
-              <span role={pending ? "status" : undefined}>
-                {pending ? "Memproses..." : confirmText}
-              </span>
-            </button>
-          </div>
+            {cancelText}
+          </button>
+          <button
+            ref={confirmRef}
+            type="button"
+            disabled={pending}
+            className={`flex-1 cursor-pointer rounded-xl px-6 py-3 font-semibold text-white
+              shadow-lg transition-all hover:brightness-110 active:scale-[0.97] ${confirmBtn}`}
+            onClick={onConfirm}
+          >
+            <span role={pending ? "status" : undefined}>
+              {pending ? "Memproses..." : confirmText}
+            </span>
+          </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };

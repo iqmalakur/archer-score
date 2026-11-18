@@ -20,6 +20,8 @@ async function checkSessionIdentity() {
   const editedSession = { ...session, sessionId, userScores: [[3, 3]] };
 
   assert.equal(await getSessionId(editedSession, setup), sessionId);
+  assert.equal(await getSessionId({ ...editedSession, setup }, setup), sessionId);
+  assert.equal(await getSessionId({ ...session, sessionId: firstId, setup }, setup), firstId);
   assert.equal(isValidSession(editedSession, setup), true);
   console.log("practice session identity: all checks passed");
 }

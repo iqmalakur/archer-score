@@ -1,4 +1,7 @@
+import type { SetupType } from "./setup";
+
 export interface EndSessionType {
+  setup?: SetupType;
   sessionId?: string;
   title?: string;
   distance?: number;
