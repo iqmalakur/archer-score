@@ -2,14 +2,17 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Vector3 } from "three";
 import { createPetungArrow, disposePetungArrow } from "./petung-arrow";
-import { createScoringArrow, poseScoringArrow } from "../components/scoring/target-arrow-pose";
+import {
+  createScoringArrow, poseScoringArrow, scoringArrowRotation,
+} from "../components/scoring/target-arrow-pose";
 
 test("embedded arrow hides its point and extends above and right of the stored entry", () => {
   const template = createPetungArrow();
   const arrow = createScoringArrow(template);
   arrow.position.set(40, -20, 0);
 
-  poseScoringArrow(arrow, 170, true);
+  const rotation = scoringArrowRotation(new Vector3(150, 200, 200), arrow.position);
+  poseScoringArrow(arrow, 170, true, rotation);
   arrow.updateMatrixWorld(true);
 
   const model = arrow.children[0];
@@ -25,23 +28,27 @@ test("embedded arrow hides its point and extends above and right of the stored e
   assert.equal(model.getObjectByName("steel-point")!.visible, false);
   assert.equal(template.getObjectByName("steel-point")!.visible, true);
 
-  poseScoringArrow(arrow, 115, false);
+  poseScoringArrow(arrow, 115, false, rotation);
   assert.equal(model.position.y, 0);
   assert.equal(model.getObjectByName("steel-point")!.visible, true);
   disposePetungArrow(template);
 });
 
-test("every placed arrow keeps the steady aim orientation and its recorded entry point", () => {
+test("each placement preserves its own last aim rotation and exact entry point", () => {
   const template = createPetungArrow();
   const arrow = createScoringArrow(template);
-  poseScoringArrow(arrow, 1122, false);
-  const steadyAim = arrow.quaternion.clone();
+  const launch = new Vector3(150, 220, 200);
   const points = [-0.6, 0, 0.6].flatMap((y) => [-0.6, 0, 0.6].map((x) => ({ x, y })));
   points.push({ x: 1.3, y: 1.15 }, { x: -1.3, y: -1.15 });
 
   for (const { x, y } of points) {
+    const impact = new Vector3(x * 180, -y * 180, 0);
+    const rotation = scoringArrowRotation(launch, impact);
+    arrow.position.copy(launch);
+    poseScoringArrow(arrow, 1122, false, rotation);
+    const steadyAim = arrow.quaternion.clone();
     arrow.position.set(x * 180, -y * 180, 0);
-    poseScoringArrow(arrow, 510, true);
+    poseScoringArrow(arrow, 459, true, rotation);
     arrow.updateMatrixWorld(true);
     const model = arrow.children[0];
     const entry = model.localToWorld(new Vector3(0, -0.66, 0));
@@ -53,4 +60,21 @@ test("every placed arrow keeps the steady aim orientation and its recorded entry
 
   assert.equal(template.getObjectByName("steel-point")!.visible, true);
   disposePetungArrow(template);
+});
+
+test("aim rotation tracks the destination from one fixed launch without changing its position", () => {
+  const launch = new Vector3(150, 220, 200);
+  const original = launch.clone();
+  const destinations = [new Vector3(-150, -100, 0), new Vector3(100, 100, 0)];
+  const directions = destinations.map((impact) => new Vector3(0, -1, 0)
+    .applyEuler(scoringArrowRotation(launch, impact)));
+
+  for (const [index, direction] of directions.entries()) {
+    const impact = destinations[index];
+    assert.ok(Math.abs(direction.x / direction.z - (launch.x - impact.x) / 2400) < 1e-10);
+    assert.ok(Math.abs(direction.y / direction.z - (launch.y - impact.y) / 2400) < 1e-10);
+    assert.ok(direction.z > 0.98);
+  }
+  assert.ok(directions[0].angleTo(directions[1]) > 0.05);
+  assert.deepEqual(launch, original);
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
-import type { TargetConfig } from "@/types/target";
+import type { TargetConfig, TargetPoint } from "@/types/target";
 import type { ArrowEntry } from "@/types/target-session";
 import type { TargetArrowScene } from "./target-arrow-scene";
 
@@ -11,16 +11,16 @@ interface TargetArrowLayerProps {
   target: TargetConfig;
   entries: ArrowEntry[];
   selected?: string;
-  preparing: boolean;
+  aimPoint?: TargetPoint;
 }
 
-export function TargetArrowLayer({ surface, box, target, entries, selected, preparing }: TargetArrowLayerProps) {
+export function TargetArrowLayer({ surface, box, target, entries, selected, aimPoint }: TargetArrowLayerProps) {
   const scene = useRef<TargetArrowScene | null>(null);
-  const latest = useRef({ entries, selected, preparing });
+  const latest = useRef({ entries, selected, aimPoint });
   useEffect(() => {
-    latest.current = { entries, selected, preparing };
-    scene.current?.update(entries, selected, preparing);
-  }, [entries, selected, preparing]);
+    latest.current = { entries, selected, aimPoint };
+    scene.current?.update(entries, selected, aimPoint);
+  }, [entries, selected, aimPoint]);
 
   useEffect(() => {
     let disposed = false;
@@ -33,7 +33,7 @@ export function TargetArrowLayer({ surface, box, target, entries, selected, prep
       if (disposed || !root || !box.current) return;
       scene.current = new TargetArrowScene(root, box.current, target, available);
       const current = latest.current;
-      scene.current.update(current.entries, current.selected, current.preparing);
+      scene.current.update(current.entries, current.selected, current.aimPoint);
     }).catch(() => available(false));
 
     return () => {

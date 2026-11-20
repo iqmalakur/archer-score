@@ -66,7 +66,7 @@ export function End({ target, entries, disabled, onChange, onBusyChange, onReset
         <ArrowDock entries={entries} selected={selected} disabled={busy} onSelect={setSelected} />
         <TargetArrowLayer
           surface={surface} box={box} target={target} entries={entries}
-          selected={active?.id} preparing={aim?.phase === "aiming"}
+          selected={active?.id} aimPoint={aim?.phase === "aiming" ? aim.point : undefined}
         />
       </div>
 

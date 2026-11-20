@@ -1,17 +1,18 @@
 import {
-  DirectionalLight, Group, HemisphereLight, OrthographicCamera,
+  DirectionalLight, Euler, Group, HemisphereLight, OrthographicCamera,
   Scene, Vector3, WebGLRenderer,
 } from "three";
 import type { ArrowEntry } from "@/types/target-session";
-import type { TargetConfig } from "@/types/target";
+import type { TargetConfig, TargetPoint } from "@/types/target";
 import { createPetungArrow, disposePetungArrow } from "@/lib/petung-arrow";
 import {
-  createScoringArrow, poseScoringArrow, SCORING_ARROW_TILT, SCORING_ARROW_TURN,
+  createScoringArrow, poseScoringArrow, scoringArrowRotation,
 } from "./target-arrow-pose";
 
 type Flight = {
   kind: "lift" | "shot"; start: Vector3; end: Vector3;
   time: number; startScale: number; endScale: number;
+  rotation: Euler;
 };
 
 export class TargetArrowScene {
@@ -28,6 +29,7 @@ export class TargetArrowScene {
   private entries: ArrowEntry[] = [];
   private selected?: string;
   private preparing?: string;
+  private aimPoint: TargetPoint = { x: 0, y: 0 };
   private frame = 0;
   private observer: ResizeObserver;
   private lost = false;
@@ -58,8 +60,17 @@ export class TargetArrowScene {
     this.availability(true);
   }
 
-  update(entries: ArrowEntry[], selected?: string, preparing = false) {
-    const ready = preparing && entries.some((entry) => entry.id === selected && entry.status === "empty")
+  update(entries: ArrowEntry[], selected?: string, aimPoint?: TargetPoint) {
+    if (entries === this.entries && selected === this.selected && this.preparing && aimPoint) {
+      this.aimPoint = aimPoint;
+      const rotation = this.orientation(aimPoint);
+      const lift = this.flights.get(this.preparing);
+      if (lift) lift.rotation.copy(rotation);
+      else this.arrows.get(this.preparing)!.rotation.copy(rotation);
+      this.render();
+      return;
+    }
+    const ready = aimPoint && entries.some((entry) => entry.id === selected && entry.status === "empty")
       ? selected : undefined;
     for (const entry of entries) {
       if (!this.arrows.has(entry.id)) {
@@ -73,10 +84,12 @@ export class TargetArrowScene {
           kind: "shot", start: staged ? arrow.position.clone() : this.readyTip(),
           end: this.impact(entry, this.box.getBoundingClientRect()), time: performance.now(),
           startScale: staged ? arrow.scale.x : this.arrowSize() * 2.2 / 8.4, endScale: 1,
+          rotation: this.orientation(entry),
         });
       }
     }
 
+    this.aimPoint = aimPoint ?? { x: 0, y: 0 };
     if (ready !== this.preparing) {
       if (this.preparing && this.flights.get(this.preparing)?.kind === "lift") {
         this.flights.delete(this.preparing);
@@ -87,6 +100,7 @@ export class TargetArrowScene {
           kind: "lift", start: this.arrows.get(ready)!.position.clone(),
           end: this.readyTip(), time: performance.now(),
           startScale: this.arrows.get(ready)!.scale.x, endScale: 1,
+          rotation: this.orientation(this.aimPoint),
         });
       }
     }
@@ -116,7 +130,11 @@ export class TargetArrowScene {
     return Math.min(170, this.box.getBoundingClientRect().width * 0.476) * 3;
   }
 
-  private impact(entry: ArrowEntry & { x: number; y: number }, rect: DOMRect) {
+  private orientation(point: TargetPoint) {
+    return scoringArrowRotation(this.readyTip(), this.impact(point, this.box.getBoundingClientRect()));
+  }
+
+  private impact(entry: TargetPoint, rect: DOMRect) {
     return this.pixel(
       rect.left + (entry.x / this.target.box.halfWidth + 1) * rect.width / 2,
       rect.top + (entry.y / this.target.box.halfHeight + 1) * rect.height / 2,
@@ -137,8 +155,9 @@ export class TargetArrowScene {
     const airborne = ready || Boolean(flight);
     (airborne ? this.flying : spatial ? this.placed : this.dock).add(arrow);
     // Compensate for the short screen projection when viewing the arrow from behind.
-    const size = spatial ? this.arrowSize() : airborne ? this.arrowSize() * 2.2 : 115;
-    poseScoringArrow(arrow, size * (this.selected === entry.id ? 1.07 : 1), spatial && !flight);
+    const size = spatial ? this.arrowSize() * 0.9 : airborne ? this.arrowSize() * 2.2 : 115;
+    const rotation = spatial ? this.orientation(entry) : this.orientation(this.aimPoint);
+    poseScoringArrow(arrow, size * (this.selected === entry.id ? 1.07 : 1), spatial && !flight, rotation);
     if (!spatial && !airborne) {
       arrow.rotation.set(0.08, 0, -0.04);
       arrow.children[0].rotation.y = 0;
@@ -147,6 +166,7 @@ export class TargetArrowScene {
     if (flight) {
       flight.end.copy(destination);
       flight.endScale = arrow.scale.x;
+      flight.rotation.copy(rotation);
       return;
     }
     arrow.position.copy(destination);
@@ -187,11 +207,11 @@ export class TargetArrowScene {
       arrow.scale.setScalar(flight.startScale + (flight.endScale - flight.startScale) * scaleProgress);
       if (lift) {
         arrow.rotation.set(
-          0.08 + (SCORING_ARROW_TILT - 0.08) * progress,
-          0, -0.04 + (SCORING_ARROW_TURN + 0.04) * progress,
+          0.08 + (flight.rotation.x - 0.08) * progress,
+          flight.rotation.y * progress, -0.04 + (flight.rotation.z + 0.04) * progress,
         );
       } else {
-        arrow.rotation.set(SCORING_ARROW_TILT, 0, SCORING_ARROW_TURN);
+        arrow.rotation.copy(flight.rotation);
         const embedded = travel === 1;
         const model = arrow.children[0];
         model.position.y = embedded ? 0.66 : 0;
