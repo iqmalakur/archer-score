@@ -1,9 +1,5 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { TargetSettings } from "@/components/settings/TargetSettings";
 
 export default function SettingPage() {
-  return (
-    <>
-      <ComingSoon />
-    </>
-  );
+  return <TargetSettings />;
 }

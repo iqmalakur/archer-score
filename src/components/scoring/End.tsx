@@ -1,108 +1,110 @@
-import React from "react";
+"use client";
+
+import { useRef, useState } from "react";
+import type { TargetConfig, TargetPoint } from "@/types/target";
+import type { ArrowEntry } from "@/types/target-session";
+import { classifyPoint } from "@/lib/target-geometry";
+import { entryLabel, entryScore } from "@/lib/target-session";
+import { TargetBoard } from "./TargetBoard";
+import { AimOverlay } from "./AimOverlay";
+import { ArrowDock } from "./ArrowDock";
+import { useTargetInteraction } from "./useTargetInteraction";
+import { TargetArrowLayer } from "./TargetArrowLayer";
 
 export interface EndProps {
-  endNumber: number;
-  arrowCount: number;
-  targetScores: number[];
-  scores: number[];
-  onScoreChange: (endIndex: number, arrowIndex: number, score: number) => void;
+  target: TargetConfig;
+  entries: ArrowEntry[];
+  disabled: boolean;
+  onChange: (entries: ArrowEntry[]) => void;
+  onBusyChange: (busy: boolean) => void;
+  onReset: (afterReset: () => void) => void;
 }
 
-export const End = ({
-  endNumber,
-  arrowCount,
-  targetScores,
-  scores,
-  onScoreChange,
-}: EndProps) => {
-  const arrowCountArray = Array.from(
-    { length: arrowCount },
-    (_, idx) => idx + 1,
-  );
-
-  const handleScoreChange = (arrowIndex: number, score: number) => {
-    if (onScoreChange) {
-      onScoreChange(endNumber - 1, arrowIndex, score);
-    }
+export function End({ target, entries, disabled, onChange, onBusyChange, onReset }: EndProps) {
+  const box = useRef<HTMLDivElement>(null);
+  const surface = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState(() => Math.max(0, entries.findIndex((entry) => entry.status === "empty")));
+  const [announcement, setAnnouncement] = useState("");
+  const active = entries[selected];
+  const commit = (point: TargetPoint) => {
+    if (disabled || active?.status !== "empty") return;
+    const placement = classifyPoint(target, point);
+    if (!placement) return;
+    const next = entries.map((entry, index) => index === selected ? { ...placement, id: entry.id } : entry);
+    onChange(next);
+    const nextEmpty = next.findIndex((entry) => entry.status === "empty");
+    setSelected(nextEmpty >= 0 ? nextEmpty : selected);
+    setAnnouncement(`Panah ${selected + 1}, ${entryLabel(next[selected])}.`);
   };
-
-  const subtotal = scores.reduce((acc, score) => acc + score, 0);
+  const aim = useTargetInteraction({
+    box, target, disabled, canAim: active?.status === "empty", onCommit: commit, onBusyChange,
+  });
+  const preview = aim && aim.phase !== "canceled" ? classifyPoint(target, aim.point) : null;
+  const busy = disabled || Boolean(aim);
+  const recorded = entries.filter((entry) => entry.status !== "empty").length;
 
   return (
-    <div className="rounded-2xl bg-linear-to-br from-primary/40 via-line to-transparent p-px">
-      <div className="rounded-[15px] bg-surface p-4 sm:p-5">
-        <div className="flex flex-col gap-5">
-          {arrowCountArray.map((arrowNumber, arrowIndex) => {
-            return (
-              <div
-                key={arrowNumber}
-                className="flex flex-col gap-2 rounded-xl border border-line bg-surface-muted/60 p-3"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium text-ink-muted">
-                    Skor Panah {arrowNumber}
-                  </h4>
-
-                  {scores[arrowIndex] !== 0 && (
-                    <button
-                      aria-label={`Hapus skor Panah ${arrowNumber}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-red-500 transition-all duration-150 hover:bg-red-50 hover:ring-2 hover:ring-red-200 dark:hover:bg-red-900/30"
-                      onClick={() => handleScoreChange(arrowIndex, 0)}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
-                        className="h-4 w-4"
-                        aria-hidden
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M6 18 18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-                  {targetScores.map((score) => {
-                    return (
-                      <React.Fragment key={score}>
-                        <label className="relative flex cursor-pointer items-center justify-center">
-                          <input
-                            type="radio"
-                            name={`end-${endNumber}-arrow-${arrowNumber}-score`}
-                            value={score}
-                            className="peer sr-only"
-                            checked={score === (scores[arrowIndex] ?? 0)}
-                            onChange={() =>
-                              handleScoreChange(arrowIndex, score)
-                            }
-                          />
-                          <span className="flex min-h-12 min-w-12 items-center justify-center rounded-full border border-line bg-surface text-sm font-semibold text-ink-muted shadow-sm transition-all duration-150 ease-out hover:-translate-y-px hover:border-primary/60 hover:ring-2 hover:ring-primary/20 peer-checked:scale-110 peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-primary/40 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50">
-                            {score}
-                          </span>
-                        </label>
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+    <div className="target-end">
+      <div className="end-summary">
+        <span>Panah <strong>{selected + 1}/{entries.length}</strong> · {recorded} tercatat</span>
+        <span>Subtotal <strong data-testid="end-subtotal">
+          {entries.reduce((sum, entry) => sum + entryScore(entry), 0)}
+        </strong></span>
+      </div>
+      <div className="scoring-surface" ref={surface}>
+        <div
+          className={`target-input${aim?.phase === "canceled" ? " aim-canceled" : ""}`}
+          ref={box} tabIndex={disabled ? -1 : 0} role="group"
+          aria-label="Papan scoring" aria-describedby="target-instructions"
+          data-testid="scoring-box" data-aim-state={aim?.phase ?? "ready"}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          <TargetBoard target={target} entries={entries}>
+            <AimOverlay aim={aim} target={target} entries={entries} box={box} />
+          </TargetBoard>
         </div>
+        <ArrowDock entries={entries} selected={selected} disabled={busy} onSelect={setSelected} />
+        <TargetArrowLayer
+          surface={surface} box={box} target={target} entries={entries}
+          selected={active?.id} preparing={aim?.phase === "aiming"}
+        />
+      </div>
 
-        <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
-          <span className="text-sm font-medium text-ink-muted">Subtotal</span>
-          <span className="text-lg font-bold text-primary-dark dark:text-primary">
-            {subtotal}
-          </span>
+      <div className={`aim-status${aim?.phase === "canceled" ? " is-canceled" : ""}`}>
+        {aim?.phase === "canceled"
+          ? <span role="alert">✕ Bidikan dibatalkan — lepaskan untuk membidik ulang</span>
+          : preview ? <span>◎ {preview.status === "hit" ? `Skor ${preview.score}` : "Miss · di luar target"}</span>
+            : <span>{active?.status === "empty"
+              ? "Klik/tap untuk memasang, atau tahan untuk membidik"
+              : "Pilih panah yang tersedia atau cabut panah terpilih"}</span>}
+      </div>
+      <div className="scoring-toolbar arrow-selection">
+        <span><strong>Panah {selected + 1}</strong> · {active && entryLabel(active)}</span>
+        <div>
+          <button
+            type="button" disabled={busy || !active || active.status === "empty"}
+            onClick={() => {
+              onChange(entries.map((entry, index) => index === selected ? { id: entry.id, status: "empty" } : entry));
+              setAnnouncement(`Panah ${selected + 1} dikembalikan ke bawah.`);
+              box.current?.focus({ preventScroll: true });
+            }}
+          >{active?.status === "legacy" ? "Kosongkan" : "Cabut"}</button>
         </div>
       </div>
+      <div className="scoring-toolbar end-tools">
+        <p id="target-instructions">
+          Keyboard: tombol arah untuk membidik, Shift untuk gerak halus, Enter untuk memasang, Esc untuk batal.
+        </p>
+        <button
+          type="button" disabled={busy || recorded === 0}
+          onClick={() => onReset(() => {
+            setSelected(0);
+            setAnnouncement("Rambahan direset. Semua panah dikembalikan ke bawah.");
+            requestAnimationFrame(() => box.current?.focus({ preventScroll: true }));
+          })}
+        >Reset rambahan</button>
+      </div>
+      <p className="sr-only" role="status" aria-live="polite">{announcement}</p>
     </div>
   );
-};
+}

@@ -1,4 +1,7 @@
 import Dexie, { Table } from "dexie";
+import type { TargetConfig } from "../types/target";
+import type { ArrowEntry } from "../types/target-session";
+import { completeEnd, isValidTargetSession, scoreProjection } from "./target-session";
 
 export interface Practice {
   id?: number;
@@ -11,6 +14,28 @@ export interface Practice {
   distance?: number;
   totalScore?: number;
   sessionId?: string;
+  schemaVersion?: 2;
+  targetSnapshot?: TargetConfig;
+  ends?: ArrowEntry[][];
+}
+
+function validatePractice(practice: Practice) {
+  if (practice.schemaVersion === undefined
+    && practice.targetSnapshot === undefined && practice.ends === undefined) return practice;
+
+  const session = {
+    ...practice, currentEnd: 1, isStarted: true,
+  };
+  if (!isValidTargetSession(session) || !session.ends.every(completeEnd)
+    || !(practice.createdAt instanceof Date) || !Number.isFinite(practice.createdAt.getTime())) {
+    throw new Error("Invalid saved target session");
+  }
+  const projection = scoreProjection(session);
+  if (JSON.stringify(projection.userScores) !== JSON.stringify(practice.userScores)
+    || JSON.stringify(projection.targetScores) !== JSON.stringify(practice.targetScores)) {
+    throw new Error("Inconsistent saved target scores");
+  }
+  return practice;
 }
 
 export interface CompletedSession {
@@ -31,6 +56,7 @@ export class ArcherScoreDB extends Dexie {
   }
 
   async addPractice(practice: Practice): Promise<number> {
+    validatePractice(practice);
     const { sessionId } = practice;
     if (!sessionId) return this.practices.add(practice);
 
@@ -49,11 +75,13 @@ export class ArcherScoreDB extends Dexie {
   }
 
   async getPractices(): Promise<Practice[]> {
-    return this.practices.orderBy("createdAt").reverse().toArray();
+    const practices = await this.practices.orderBy("createdAt").reverse().toArray();
+    return practices.map(validatePractice);
   }
 
   async getPractice(id: number): Promise<Practice | undefined> {
-    return this.practices.get(id);
+    const practice = await this.practices.get(id);
+    return practice ? validatePractice(practice) : undefined;
   }
 
   async removePractice(id: number): Promise<number> {

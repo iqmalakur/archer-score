@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { draft, finish, records, resume, seedDraft, setup, storedDraft } from "./helpers";
+import {
+  draft, legacyDraft, finish, placeArrow, records, resume, seedDraft, setup, storedDraft,
+} from "./helpers";
 
 for (const [name, preferences] of [
   ["different", { endCount: 4, arrowCount: 5, targetScores: [1, 2] }],
@@ -7,23 +9,20 @@ for (const [name, preferences] of [
 ] as const) {
   test(`snapshot restores with ${name} setup preferences`, async ({ page }) => {
     await seedDraft(page, draft, preferences);
-
     await resume(page);
 
-    await expect(page.getByRole("radio")).toHaveCount(4);
-    expect(await page.getByRole("radio").evaluateAll((inputs) =>
-      inputs.map((input) => (input as HTMLInputElement).value))).toEqual(["3", "6", "3", "6"]);
-    await expect(page.getByRole("radio", { name: "6", exact: true }).first()).toBeChecked();
-    expect((await storedDraft(page)).setup).toEqual(setup);
+    await expect(page.getByRole("button", { name: "Panah 1, Skor 6", exact: true })).toBeVisible();
+    await expect(page.getByRole("radio")).toHaveCount(0);
+    expect((await storedDraft(page)).targetSnapshot).toEqual(draft.targetSnapshot);
 
     await page.reload();
     await resume(page);
-    await expect(page.getByRole("radio")).toHaveCount(4);
+    expect((await storedDraft(page)).ends).toEqual(draft.ends);
   });
 }
 
-test("legacy draft gains a snapshot without changing its completion identity", async ({ page }) => {
-  const { setup: ignored, sessionId: ignoredId, ...legacy } = draft;
+test("legacy draft gains a target snapshot without changing its completion identity", async ({ page }) => {
+  const { setup: ignored, sessionId: ignoredId, ...legacy } = legacyDraft;
   void ignored;
   void ignoredId;
   await seedDraft(page, legacy);
@@ -34,16 +33,21 @@ test("legacy draft gains a snapshot without changing its completion identity", a
 
   await resume(page);
 
-  expect(await storedDraft(page)).toMatchObject({ sessionId: expectedId, setup });
+  expect(await storedDraft(page)).toMatchObject({ sessionId: expectedId, schemaVersion: 2 });
+  expect((await storedDraft(page)).ends[0]).toEqual([
+    { id: "1:1", status: "legacy", score: 6 }, { id: "1:2", status: "empty" },
+  ]);
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("Periksa slot nol");
   await page.reload();
   await resume(page);
+  await placeArrow(page, 1.2, 0);
   await finish(page);
   await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
   expect((await records(page)).receipts[0].sessionId).toBe(expectedId);
 });
 
-test("invalid explicit snapshot is retained until an explicit reset", async ({ page }) => {
-  const invalid = { ...draft, setup: null };
+test("invalid explicit legacy snapshot is retained until an explicit discard", async ({ page }) => {
+  const invalid = { ...legacyDraft, setup: null };
   await seedDraft(page, invalid);
 
   await expect(page.getByRole("main").getByRole("alert")).toContainText("Draft tidak valid");
@@ -55,28 +59,29 @@ test("invalid explicit snapshot is retained until an explicit reset", async ({ p
   await expect(page.getByRole("button", { name: "Mulai Scoring" })).toBeEnabled();
 });
 
-test("snapshot restores the current end and all score rows", async ({ page }) => {
+test("snapshot restores the current end and all legacy score rows", async ({ page }) => {
   const session = {
-    ...draft, setup: { ...setup, endCount: 2 }, currentEnd: 2, userScores: [[6, 3], [3, 0]],
+    ...legacyDraft, setup: { ...setup, endCount: 2 }, currentEnd: 2,
+    userScores: [[6, 3], [3, 0]],
   };
   await seedDraft(page, session, null);
-
   await page.getByRole("dialog").getByRole("button", { name: "Lanjutkan", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: /Rambahan 2 dari 2/ })).toBeVisible();
-  await expect(page.getByRole("radio", { name: "3", exact: true }).first()).toBeChecked();
-  expect((await storedDraft(page)).userScores).toEqual([[6, 3], [3, 0]]);
+  expect((await storedDraft(page)).ends[0].map((entry: { score: number }) => entry.score)).toEqual([6, 3]);
+  expect((await storedDraft(page)).ends[1][1].status).toBe("empty");
   await page.getByRole("button", { name: "Kembali", exact: true }).click();
   await expect(page.getByRole("heading", { name: /Rambahan 1 dari 2/ })).toBeVisible();
-  await expect(page.getByRole("radio", { name: "6", exact: true }).first()).toBeChecked();
+  await expect(page.getByRole("button", { name: /Panah 1, Skor 6/ })).toBeVisible();
 });
 
-test("a completed legacy draft is recognized before adding its snapshot", async ({ page }) => {
-  const { setup: ignored, sessionId: ignoredId, ...legacy } = draft;
+test("a completed legacy draft is recognized before converting its zeros", async ({ page }) => {
+  const { setup: ignored, sessionId: ignoredId, ...legacy } = legacyDraft;
   void ignored;
   void ignoredId;
   await seedDraft(page, legacy);
   await resume(page);
+  await placeArrow(page, 1.2, 0);
   await finish(page);
   await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
   await page.evaluate((legacy) => localStorage.setItem("endSession", JSON.stringify(legacy)), legacy);
@@ -89,38 +94,45 @@ test("a completed legacy draft is recognized before adding its snapshot", async 
   expect((await records(page)).practices).toHaveLength(1);
 });
 
-test("unfilled and cleared arrows count as misses without adding ring choices", async ({ page }) => {
+test("removed arrows require explicit placement rather than automatic misses", async ({ page }) => {
   await seedDraft(page);
   await resume(page);
+  await page.getByRole("button", { name: "Cabut", exact: true }).click();
 
-  await page.getByRole("button", { name: "Hapus skor Panah 1" }).click();
-
-  await expect(page.getByRole("radio", { name: "0", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Selesai", exact: true })).toBeDisabled();
+  expect((await storedDraft(page)).ends[0][0].status).toBe("empty");
+  await placeArrow(page, 1.2, 0);
   await finish(page);
   await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
   expect((await records(page)).practices[0].userScores).toEqual([[0, 0]]);
   expect(await storedDraft(page)).toBeNull();
   await page.goto("/history/1");
-  await expect(page.getByText("Panah yang tidak diisi dianggap meleset dan bernilai 0.")).toBeVisible();
+  await expect(page.getByText(/Miss ditampilkan pada posisi/)).toBeVisible();
 });
 
-test("new sessions persist their configuration and reject invalid distances", async ({ page }) => {
+test("new sessions use Setting and preserve unfinished Setup fields", async ({ page }) => {
   await page.goto("/");
   const distance = page.getByLabel("Jarak (Meter)");
-
   for (const invalid of ["", "0", "151", "1.5"]) {
     await distance.fill(invalid);
     await page.getByRole("button", { name: "Mulai Scoring" }).click();
-
     await expect(page.getByRole("main").getByRole("alert")).toContainText("antara 1 dan 150");
     expect(await storedDraft(page)).toBeNull();
   }
 
   await distance.fill("18");
-  await page.getByRole("button", { name: "Ring 6 - 10", exact: true }).click();
+  await page.getByLabel("Nama Sesi / Catatan").fill("Latihan sore");
+  await page.getByRole("link", { name: "Ubah target di Setting" }).click();
+  await page.getByRole("button", { name: "Ring 6–10", exact: true }).click();
+  await page.getByRole("button", { name: "Simpan target", exact: true }).click();
+  await page.getByRole("link", { name: "Kembali ke latihan" }).click();
+
+  await expect(page.getByLabel("Nama Sesi / Catatan")).toHaveValue("Latihan sore");
+  await expect(page.getByLabel("Jarak (Meter)")).toHaveValue("18");
   await page.getByRole("button", { name: "Mulai Scoring" }).click();
   await expect(page.getByRole("heading", { name: /Rambahan 1 dari/ })).toBeVisible();
-  expect((await storedDraft(page)).setup).toEqual({
-    endCount: 4, arrowCount: 5, targetScores: [6, 7, 8, 9, 10],
-  });
+  const saved = await storedDraft(page);
+  expect(saved.targetSnapshot.rings.map((ring: { score: number }) => ring.score)).toEqual([10, 9, 8, 7, 6]);
+  expect(saved.endCount).toBe(4);
+  expect(saved.arrowCount).toBe(5);
 });

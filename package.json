@@ -8,14 +8,15 @@
     "start": "next start",
     "lint": "eslint",
     "test": "pnpm run test:unit && pnpm run test:e2e",
-    "test:unit": "tsx --test src/lib/score.test.ts src/lib/practice-title.test.ts src/lib/practice-validation.test.ts src/lib/practice-session.test.ts",
+    "test:unit": "tsx --test src/lib/*.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
     "dexie": "^4.4.5",
     "next": "16.3.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
@@ -23,6 +24,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.187.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "tailwindcss": "^4",

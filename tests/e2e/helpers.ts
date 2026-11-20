@@ -1,12 +1,37 @@
 import { expect, type Page } from "@playwright/test";
 import type { CompletedSession, Practice } from "../../src/lib/db";
+import { createTarget } from "../../src/lib/target-settings";
 
 export const setup = { endCount: 1, arrowCount: 2, targetScores: [3, 6] };
-export const draft = {
+export const legacyDraft = {
   sessionId: "a588bb53-2552-4bf4-a814-c31fac4ec47d",
   title: "Latihan uji", distance: 18, currentEnd: 1,
   userScores: [[6, 0]], isStarted: true, setup,
 };
+export const draft = {
+  schemaVersion: 2, sessionId: legacyDraft.sessionId,
+  title: "Latihan uji", distance: 18, currentEnd: 1, isStarted: true,
+  endCount: 1, arrowCount: 2, targetSnapshot: createTarget([6, 3]),
+  ends: [[
+    { id: "1:1", status: "hit", x: 0, y: 0, ringId: "ring-1", score: 6 },
+    { id: "1:2", status: "miss", x: 1.2, y: 0 },
+  ]],
+};
+
+export async function placeArrow(page: Page, x = 0, y = 0) {
+  const box = page.getByTestId("scoring-box");
+  await box.scrollIntoViewIfNeeded();
+  const bounds = (await box.boundingBox())!;
+  const session = await storedDraft(page);
+  const geometry = session.targetSnapshot.box;
+  await page.mouse.move(
+    bounds.x + (x / geometry.halfWidth + 1) * bounds.width / 2,
+    bounds.y + (y / geometry.halfHeight + 1) * bounds.height / 2,
+  );
+  await page.mouse.down();
+  await page.waitForTimeout(220);
+  await page.mouse.up();
+}
 
 export async function seedDraft(
   page: Page,

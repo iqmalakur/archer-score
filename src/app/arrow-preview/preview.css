@@ -1,0 +1,256 @@
+.petung-page {
+  max-width: 1120px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+.petung-back {
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.petung-eyebrow {
+  margin-top: 38px;
+  color: var(--primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.petung-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 12px 0 28px;
+}
+
+.petung-title-row h1 {
+  font-size: clamp(36px, 5vw, 62px);
+  font-weight: 600;
+  letter-spacing: -0.055em;
+  line-height: 1.1;
+}
+
+.petung-title-row em {
+  color: var(--primary-dark);
+  font-family: Georgia, serif;
+  font-weight: 400;
+}
+
+.petung-description {
+  margin-top: 16px;
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.petung-version {
+  color: var(--ink-muted);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.petung-version span {
+  display: block;
+  margin-top: 8px;
+  color: var(--ink);
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  text-align: right;
+}
+
+.petung-viewer {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #34443c;
+  border-radius: 20px;
+  color: #f0e7d4;
+  background:
+    radial-gradient(ellipse at 50% 45%, #39473b 0%, transparent 65%),
+    #182720;
+}
+
+.petung-viewer-top,
+.petung-viewer-bottom {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.petung-viewer-top {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  left: 24px;
+}
+
+.petung-viewer-bottom {
+  position: relative;
+  margin: 0 24px;
+}
+
+.petung-viewer-label,
+.petung-live {
+  color: #c0c8b7;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+
+.petung-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.petung-live i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b4ca9b;
+}
+
+.petung-stage {
+  width: 100%;
+  height: 460px;
+}
+
+.petung-stage canvas {
+  display: block;
+}
+
+.petung-status {
+  position: absolute;
+  top: 45%;
+  width: 100%;
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.petung-views,
+.petung-rotate {
+  display: flex;
+  gap: 4px;
+}
+
+.petung-viewer button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #c8cbbb;
+  background: #1b2a23;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.petung-viewer button[aria-pressed="true"] {
+  color: #f4e4bf;
+  border-color: #7c8064;
+  background: #374235;
+}
+
+.petung-viewer button:hover {
+  background: #3b4739;
+}
+
+.petung-viewer button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.petung-rotate button {
+  min-width: 44px;
+  font-size: 18px;
+}
+
+.petung-page :focus-visible {
+  outline: 2px solid #d4ae6c;
+  outline-offset: 4px;
+}
+
+.petung-hint {
+  padding: 18px 14px 22px;
+  color: #a9b5a7;
+  font-size: 11px;
+  text-align: center;
+}
+
+.petung-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  margin-top: 28px;
+}
+
+.petung-details > div {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.petung-details dt {
+  color: var(--ink-muted);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.petung-details dd {
+  margin: 12px 0 7px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.petung-details dd span {
+  display: block;
+  margin-top: 7px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+@media (max-width: 640px) {
+  .petung-page {
+    padding: 24px 16px 32px;
+  }
+
+  .petung-eyebrow {
+    margin-top: 28px;
+  }
+
+  .petung-version {
+    display: none;
+  }
+
+  .petung-stage {
+    height: 520px;
+  }
+
+  .petung-viewer-top {
+    right: 14px;
+    left: 14px;
+  }
+
+  .petung-viewer-bottom {
+    flex-wrap: wrap;
+    margin: 0 14px;
+  }
+
+  .petung-viewer button {
+    padding: 8px 10px;
+  }
+
+  .petung-rotate {
+    margin-left: auto;
+  }
+
+  .petung-details {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
