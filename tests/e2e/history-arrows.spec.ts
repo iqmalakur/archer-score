@@ -22,11 +22,14 @@ test("history shares one idle renderer across twenty ends and releases it on nav
   await page.addInitScript(() => {
     const state = window as typeof window & {
       contexts: number; draws: number; deletions: number; opaqueClears: number;
+      framebuffers: number; framebufferDeletions: number;
     };
     state.contexts = 0;
     state.draws = 0;
     state.deletions = 0;
     state.opaqueClears = 0;
+    state.framebuffers = 0;
+    state.framebufferDeletions = 0;
     const getContext = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, type, ...args) {
       const context = Reflect.apply(getContext, this, [type, ...args]);
@@ -36,8 +39,19 @@ test("history shares one idle renderer across twenty ends and releases it on nav
     const draw = WebGL2RenderingContext.prototype.drawElements;
     const remove = WebGL2RenderingContext.prototype.deleteBuffer;
     const clear = WebGL2RenderingContext.prototype.clear;
+    const createFramebuffer = WebGL2RenderingContext.prototype.createFramebuffer;
+    const deleteFramebuffer = WebGL2RenderingContext.prototype.deleteFramebuffer;
+    WebGL2RenderingContext.prototype.createFramebuffer = function () {
+      state.framebuffers++;
+      return Reflect.apply(createFramebuffer, this, []);
+    };
+    WebGL2RenderingContext.prototype.deleteFramebuffer = function (framebuffer) {
+      state.framebufferDeletions++;
+      return Reflect.apply(deleteFramebuffer, this, [framebuffer]);
+    };
     WebGL2RenderingContext.prototype.clear = function (mask) {
-      if ((mask & this.COLOR_BUFFER_BIT) && this.getParameter(this.COLOR_CLEAR_VALUE)[3] !== 0) {
+      if ((mask & this.COLOR_BUFFER_BIT) && this.getParameter(this.FRAMEBUFFER_BINDING) === null
+        && this.getParameter(this.COLOR_CLEAR_VALUE)[3] !== 0) {
         state.opaqueClears++;
       }
       return Reflect.apply(clear, this, [mask]);
@@ -73,10 +87,12 @@ test("history shares one idle renderer across twenty ends and releases it on nav
   const counts = () => page.evaluate(() => {
     const state = window as typeof window & {
       contexts: number; draws: number; deletions: number; opaqueClears: number;
+      framebuffers: number; framebufferDeletions: number;
     };
     return {
       contexts: state.contexts, draws: state.draws,
       deletions: state.deletions, opaqueClears: state.opaqueClears,
+      framebuffers: state.framebuffers, framebufferDeletions: state.framebufferDeletions,
     };
   });
   await page.waitForTimeout(200);
@@ -84,6 +100,7 @@ test("history shares one idle renderer across twenty ends and releases it on nav
   expect(before.contexts).toBe(1);
   expect(before.opaqueClears).toBe(0);
   expect(before.draws).toBeGreaterThan(0);
+  expect(before.framebuffers).toBeGreaterThan(0);
   await page.waitForTimeout(200);
   expect(await counts()).toEqual(before);
   expect(await records(page)).toEqual(saved);
@@ -92,6 +109,7 @@ test("history shares one idle renderer across twenty ends and releases it on nav
 
   await expect(page.getByRole("heading", { name: "Riwayat Latihan" })).toBeVisible();
   expect((await counts()).deletions).toBeGreaterThan(before.deletions);
+  expect((await counts()).framebufferDeletions).toBeGreaterThan(before.framebufferDeletions);
 });
 
 test("history keeps spatial markers and legacy scores when WebGL is unavailable", async ({ page }) => {

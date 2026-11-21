@@ -6,9 +6,11 @@ import type { TargetConfig } from "@/types/target";
 import type { ArrowEntry } from "@/types/target-session";
 import { createPetungArrow, disposePetungArrow } from "@/lib/petung-arrow";
 import { createScoringArrow, poseScoringArrow, scoringArrowRotation } from "../scoring/target-arrow-pose";
+import { createArrowShadows } from "../scoring/arrow-shadows";
 
 export class HistoryArrowScene {
   private renderer: WebGLRenderer;
+  private shadows: ReturnType<typeof createArrowShadows>;
   private scene = new Scene();
   private camera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 4800);
   private template = createPetungArrow();
@@ -37,8 +39,8 @@ export class HistoryArrowScene {
     this.camera.position.z = 2400;
     this.scene.add(new HemisphereLight("#fff1d1", "#65776d", 3));
     const key = new DirectionalLight("#fff3da", 4);
-    key.position.set(200, 400, 800);
-    this.scene.add(key);
+    this.shadows = createArrowShadows(this.renderer, this.scene, key);
+    this.scene.add(key, this.shadows.surface);
     this.boards = Array.from(root.querySelectorAll<HTMLElement>("[data-history-end]"));
     this.groups = ends.map((entries) => {
       const group = new Group();
@@ -107,6 +109,7 @@ export class HistoryArrowScene {
       poseScoringArrow(arrow, size, true, scoringArrowRotation(arrow.position, center));
     }
     group.visible = true;
+    this.shadows.update(center, rect.width, rect.height);
     this.renderer.setScissorTest(true);
     this.renderer.setScissor(left, this.height - bottom, right - left, bottom - top);
     this.renderer.render(this.scene, this.camera);
@@ -134,6 +137,7 @@ export class HistoryArrowScene {
     this.renderer.domElement.removeEventListener("webglcontextlost", this.contextLost);
     this.renderer.domElement.removeEventListener("webglcontextrestored", this.contextRestored);
     disposePetungArrow(this.template);
+    this.shadows.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
     this.availability(false);

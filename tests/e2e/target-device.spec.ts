@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { emptyEnds } from "../../src/lib/target-session";
-import { draft, placeArrow, resume, seedDraft, storedDraft } from "./helpers";
+import { draft, resume, seedDraft, storedDraft } from "./helpers";
 
 test("mobile native touch ignores the second pointer and cancels interrupted gestures", async ({ browser }) => {
   const context = await browser.newContext({
@@ -48,15 +48,32 @@ test("mobile native touch ignores the second pointer and cancels interrupted ges
   }
 });
 
-test("arrow rendering idles after placement and releases buffers on navigation", async ({ page }) => {
+test("arrows cast shadows from release, idle after impact, and free buffers on navigation", async ({ page }) => {
   await page.addInitScript(() => {
-    const state = window as typeof window & { draws: number; deletions: number };
+    const state = window as typeof window & {
+      draws: number; deletions: number; framebuffers: number; framebufferDeletions: number;
+      shadowDraws: number;
+    };
     state.draws = 0;
+    state.shadowDraws = 0;
     state.deletions = 0;
+    state.framebuffers = 0;
+    state.framebufferDeletions = 0;
     const draw = WebGL2RenderingContext.prototype.drawElements;
     const remove = WebGL2RenderingContext.prototype.deleteBuffer;
+    const createFramebuffer = WebGL2RenderingContext.prototype.createFramebuffer;
+    const deleteFramebuffer = WebGL2RenderingContext.prototype.deleteFramebuffer;
+    WebGL2RenderingContext.prototype.createFramebuffer = function () {
+      state.framebuffers++;
+      return Reflect.apply(createFramebuffer, this, []);
+    };
+    WebGL2RenderingContext.prototype.deleteFramebuffer = function (framebuffer) {
+      state.framebufferDeletions++;
+      return Reflect.apply(deleteFramebuffer, this, [framebuffer]);
+    };
     WebGL2RenderingContext.prototype.drawElements = function (...args) {
       state.draws++;
+      if (this.getParameter(this.DRAW_FRAMEBUFFER_BINDING)) state.shadowDraws++;
       return Reflect.apply(draw, this, args);
     };
     WebGL2RenderingContext.prototype.deleteBuffer = function (...args) {
@@ -67,19 +84,47 @@ test("arrow rendering idles after placement and releases buffers on navigation",
   await seedDraft(page, { ...draft, arrowCount: 12, ends: emptyEnds({ endCount: 1, arrowCount: 12 }) });
   await resume(page);
   await expect(page.locator('[data-arrow-renderer="ready"]')).toBeVisible();
-  await placeArrow(page);
-  await page.waitForTimeout(750);
+  const box = page.getByTestId("scoring-box");
+  await box.scrollIntoViewIfNeeded();
+  const bounds = (await box.boundingBox())!;
+  await page.clock.install({ time: new Date("2026-01-01T12:00:00Z") });
+  await page.clock.pauseAt(new Date("2026-01-01T12:01:00Z"));
+  const shadowDraws = () => page.evaluate(() =>
+    (window as typeof window & { shadowDraws: number }).shadowDraws);
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await page.clock.fastForward(200);
+  await page.clock.fastForward(250);
+  await expect(box).toHaveAttribute("data-aim-state", "aiming");
+  expect(await shadowDraws()).toBe(0);
+
+  await page.mouse.up();
+  await page.clock.fastForward(210);
+  expect(await shadowDraws()).toBeGreaterThan(0);
+  await page.screenshot({ path: "test-results/scoring-shadow-in-flight.png" });
+  await page.clock.fastForward(170);
+  await box.screenshot({ path: "test-results/scoring-shadow-before-impact.png" });
+  await page.clock.fastForward(330);
+  await page.clock.resume();
   const counts = () => page.evaluate(() => {
-    const state = window as typeof window & { draws: number; deletions: number };
-    return { draws: state.draws, deletions: state.deletions };
+    const state = window as typeof window & {
+      draws: number; deletions: number; framebuffers: number; framebufferDeletions: number;
+    };
+    return {
+      draws: state.draws, deletions: state.deletions,
+      framebuffers: state.framebuffers, framebufferDeletions: state.framebufferDeletions,
+    };
   });
   const before = await counts();
   await page.waitForTimeout(250);
   expect(await counts()).toEqual(before);
   expect(before.draws).toBeGreaterThan(0);
+  expect(before.framebuffers).toBeGreaterThan(0);
+  await page.getByTestId("scoring-box").screenshot({ path: "test-results/scoring-arrow-shadow.png" });
 
   await page.getByRole("link", { name: "Setting", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Setting target" })).toBeVisible();
   expect((await counts()).deletions).toBeGreaterThan(before.deletions);
+  expect((await counts()).framebufferDeletions).toBeGreaterThan(before.framebufferDeletions);
 });

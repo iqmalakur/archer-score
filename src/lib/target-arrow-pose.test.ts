@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { Vector3 } from "three";
+import { Mesh, Vector3 } from "three";
 import { createPetungArrow, disposePetungArrow } from "./petung-arrow";
 import {
   createScoringArrow, poseScoringArrow, scoringArrowRotation,
@@ -9,6 +9,9 @@ import {
 test("embedded arrow hides its point and extends above and right of the stored entry", () => {
   const template = createPetungArrow();
   const arrow = createScoringArrow(template);
+  assert.equal((arrow.children[0].getObjectByName("bamboo-shaft") as Mesh).castShadow, false);
+  assert.equal((arrow.children[1].getObjectByName("bamboo-shaft") as Mesh).castShadow, true);
+  assert.equal((template.getObjectByName("bamboo-shaft") as Mesh).castShadow, false);
   arrow.position.set(40, -20, 0);
 
   const rotation = scoringArrowRotation(new Vector3(150, 200, 200), arrow.position);

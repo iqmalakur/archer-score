@@ -6,8 +6,9 @@ import type { ArrowEntry } from "@/types/target-session";
 import type { TargetConfig, TargetPoint } from "@/types/target";
 import { createPetungArrow, disposePetungArrow } from "@/lib/petung-arrow";
 import {
-  createScoringArrow, poseScoringArrow, scoringArrowRotation,
+  createScoringArrow, poseArrowShadow, poseScoringArrow, scoringArrowRotation, scoringLaunchOffset,
 } from "./target-arrow-pose";
+import { createArrowShadows } from "./arrow-shadows";
 
 type Flight = {
   kind: "lift" | "shot"; start: Vector3; end: Vector3;
@@ -15,14 +16,25 @@ type Flight = {
   rotation: Euler;
 };
 
+const BOARD = 0;
+const SHOT = 1;
+const AIM = 2;
+const DOCK = 3;
+
+function setArrowLayer(arrow: Group, layer: number) {
+  if (!arrow.layers.isEnabled(layer)) {
+    arrow.layers.set(layer);
+    arrow.children[0].traverse((part) => part.layers.set(layer));
+  }
+  arrow.children[1].visible = layer === SHOT || layer === BOARD;
+}
+
 export class TargetArrowScene {
   private renderer: WebGLRenderer;
+  private shadows: ReturnType<typeof createArrowShadows>;
   private scene = new Scene();
   private camera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 4800);
   private template = createPetungArrow();
-  private placed = new Group();
-  private dock = new Group();
-  private flying = new Group();
   private arrows = new Map<string, Group>();
   private flights = new Map<string, Flight>();
   private previous = new Map<string, string>();
@@ -42,15 +54,18 @@ export class TargetArrowScene {
     private availability: (ready: boolean) => void,
   ) {
     this.renderer = new WebGLRenderer({ alpha: true, antialias: true });
+    this.renderer.setClearColor("#000000", 0);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.domElement.className = "target-arrow-canvas";
     this.renderer.domElement.setAttribute("aria-hidden", "true");
     this.root.append(this.renderer.domElement);
-    this.scene.add(new HemisphereLight("#fff1d1", "#65776d", 3));
+    const fill = new HemisphereLight("#fff1d1", "#65776d", 3);
     const key = new DirectionalLight("#fff3da", 4);
-    key.position.set(200, 400, 800);
-    this.scene.add(key, this.placed, this.dock, this.flying);
-    this.camera.position.z = 2400;
+    fill.layers.enableAll();
+    key.layers.enableAll();
+    this.shadows = createArrowShadows(this.renderer, this.scene, key);
+    this.scene.add(fill, key, this.shadows.surface);
+    this.camera.position.z = 4000;
     this.observer = new ResizeObserver(this.layout);
     this.observer.observe(root);
     this.root.addEventListener("scroll", this.layout, true);
@@ -74,7 +89,9 @@ export class TargetArrowScene {
       ? selected : undefined;
     for (const entry of entries) {
       if (!this.arrows.has(entry.id)) {
-        this.arrows.set(entry.id, createScoringArrow(this.template));
+        const arrow = createScoringArrow(this.template);
+        this.arrows.set(entry.id, arrow);
+        this.scene.add(arrow);
       }
       if ((entry.status === "hit" || entry.status === "miss")
         && this.previous.get(entry.id) === "empty" && !this.reduced.matches) {
@@ -123,7 +140,7 @@ export class TargetArrowScene {
 
   private readyTip() {
     const rect = this.box.getBoundingClientRect();
-    return this.pixel(rect.right - 30, rect.top - 24).setZ(200);
+    return this.pixel(rect.left, rect.top).add(scoringLaunchOffset(rect.width, rect.height));
   }
 
   private arrowSize() {
@@ -153,7 +170,7 @@ export class TargetArrowScene {
       flight = undefined;
     }
     const airborne = ready || Boolean(flight);
-    (airborne ? this.flying : spatial ? this.placed : this.dock).add(arrow);
+    setArrowLayer(arrow, spatial ? (flight ? SHOT : BOARD) : (airborne ? AIM : DOCK));
     // Compensate for the short screen projection when viewing the arrow from behind.
     const size = spatial ? this.arrowSize() * 0.9 : airborne ? this.arrowSize() * 2.2 : 115;
     const rotation = spatial ? this.orientation(entry) : this.orientation(this.aimPoint);
@@ -188,6 +205,7 @@ export class TargetArrowScene {
     this.camera.updateProjectionMatrix();
     const rect = this.box.getBoundingClientRect();
     for (const entry of this.entries) this.placeArrow(entry, rect);
+    this.shadows.update(this.pixel(rect.left + rect.width / 2, rect.top + rect.height / 2), rect.width, rect.height);
     this.render();
   };
 
@@ -213,43 +231,39 @@ export class TargetArrowScene {
       } else {
         arrow.rotation.copy(flight.rotation);
         const embedded = travel === 1;
+        poseArrowShadow(arrow, embedded, flight.endScale);
+        if (embedded) setArrowLayer(arrow, BOARD);
         const model = arrow.children[0];
         model.position.y = embedded ? 0.66 : 0;
         model.getObjectByName("steel-point")!.visible = !embedded;
         const settle = Math.min(1, Math.max(0, (elapsed - 420) / 180));
         model.position.y += Math.sin(settle * Math.PI * 4) * 0.035 * (1 - settle);
       }
-      if (t === 1) {
-        this.flights.delete(id);
-        if (!lift) this.placed.add(arrow);
-      }
+      if (t === 1) this.flights.delete(id);
     }
     this.renderer.autoClear = false;
     this.renderer.setScissorTest(false);
     this.renderer.clear();
-    this.renderGroup(this.placed, this.box.getBoundingClientRect());
+    this.renderLayer(BOARD, this.box.getBoundingClientRect());
     const dock = this.root.querySelector(".arrow-dock-scroll");
-    if (dock) this.renderGroup(this.dock, dock.getBoundingClientRect());
+    if (dock) this.renderLayer(DOCK, dock.getBoundingClientRect());
     if (this.flights.size || this.preparing) {
-      this.renderGroup(this.flying, this.renderer.domElement.getBoundingClientRect());
+      this.renderLayer(SHOT, this.renderer.domElement.getBoundingClientRect());
     }
     if (this.flights.size) this.frame = requestAnimationFrame(this.render);
   };
 
-  private renderGroup(group: Group, bounds: DOMRect) {
+  private renderLayer(layer: number, bounds: DOMRect) {
     const canvas = this.renderer.domElement.getBoundingClientRect();
-    this.placed.visible = group === this.placed;
-    this.dock.visible = group === this.dock;
-    this.flying.visible = group === this.flying;
+    this.camera.layers.set(layer);
+    if (layer === SHOT) this.camera.layers.enable(AIM);
     this.renderer.setScissorTest(true);
     this.renderer.setScissor(
       Math.max(0, bounds.left - canvas.left), Math.max(0, canvas.bottom - bounds.bottom),
       Math.min(bounds.width, canvas.width), bounds.height,
     );
+    this.renderer.shadowMap.needsUpdate = layer === BOARD;
     this.renderer.render(this.scene, this.camera);
-    this.placed.visible = true;
-    this.dock.visible = true;
-    this.flying.visible = true;
   }
 
   private contextLost = (event: Event) => {
@@ -275,6 +289,7 @@ export class TargetArrowScene {
     this.renderer.domElement.removeEventListener("webglcontextlost", this.contextLost);
     this.renderer.domElement.removeEventListener("webglcontextrestored", this.contextRestored);
     disposePetungArrow(this.template);
+    this.shadows.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
     this.availability(false);
