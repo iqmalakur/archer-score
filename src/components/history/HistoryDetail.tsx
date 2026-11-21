@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { db, type Practice } from "@/lib/db";
 import { calculateScore } from "@/lib/score";
@@ -9,6 +9,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatusCard } from "@/components/StatusCard";
 import { Result } from "@/components/scoring/Result";
 import { TargetBoard } from "@/components/scoring/TargetBoard";
+import { HistoryTargetArrows } from "./HistoryTargetArrows";
 
 function HistoryBackLink() {
   return (
@@ -24,11 +25,12 @@ function HistoryBackLink() {
 }
 
 function HistoryEnds({ practice }: { practice: Practice }) {
+  const surface = useRef<HTMLElement>(null);
   const { totalScore } = calculateScore(practice);
   const maxEndScore = Math.max(0, ...practice.targetScores) * practice.arrowCount;
 
   return (
-    <section aria-labelledby="ends-heading" className="flex flex-col gap-4">
+    <section ref={surface} aria-labelledby="ends-heading" className="flex flex-col gap-4">
       <h2 id="ends-heading" className="text-lg font-semibold text-ink">Rincian Rambahan</h2>
       <p className="text-sm text-ink-muted">
         {practice.schemaVersion === 2
@@ -39,7 +41,10 @@ function HistoryEnds({ practice }: { practice: Practice }) {
         <article key={endIndex} className="rounded-2xl border border-line bg-surface/75 p-5 shadow-sm sm:p-6">
           <h3 className="font-semibold text-ink">Rambahan {endIndex + 1}</h3>
           {practice.targetSnapshot && practice.ends && (
-            <div className="mx-auto my-4 max-w-lg" aria-label={`Posisi panah rambahan ${endIndex + 1}`}>
+            <div
+              className="mx-auto my-4 max-w-lg" data-history-end={endIndex}
+              aria-label={`Posisi panah rambahan ${endIndex + 1}`}
+            >
               <TargetBoard target={practice.targetSnapshot} entries={practice.ends[endIndex]} />
             </div>
           )}
@@ -65,6 +70,9 @@ function HistoryEnds({ practice }: { practice: Practice }) {
           </div>
         </article>
       ))}
+      {practice.targetSnapshot && practice.ends && (
+        <HistoryTargetArrows surface={surface} target={practice.targetSnapshot} ends={practice.ends} />
+      )}
       <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-muted p-4">
         <span className="font-semibold text-ink">Total skor keseluruhan</span>
         <span className="text-xl font-bold text-primary-dark dark:text-primary">{totalScore}</span>

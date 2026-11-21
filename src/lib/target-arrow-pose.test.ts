@@ -78,3 +78,28 @@ test("aim rotation tracks the destination from one fixed launch without changing
   assert.ok(directions[0].angleTo(directions[1]) > 0.05);
   assert.deepEqual(launch, original);
 });
+
+test("history arrows lean away from the target center and face forward at the bullseye", () => {
+  const center = new Vector3(40, -20, 0);
+  const template = createPetungArrow();
+  const arrow = createScoringArrow(template);
+
+  for (const x of [-180, 0, 180]) {
+    for (const y of [-160, 0, 160]) {
+      arrow.position.copy(center).add(new Vector3(x, y, 0));
+      const rotation = scoringArrowRotation(arrow.position, center);
+      poseScoringArrow(arrow, 459, true, rotation);
+      arrow.updateMatrixWorld(true);
+      const model = arrow.children[0];
+      const entry = model.localToWorld(new Vector3(0, -0.66, 0));
+      const direction = new Vector3(0, -1, 0).applyEuler(rotation);
+
+      assert.ok(entry.distanceTo(arrow.position) < 1e-10);
+      assert.ok(Math.abs(direction.x / direction.z - x / 2400) < 1e-10);
+      assert.ok(Math.abs(direction.y / direction.z - y / 2400) < 1e-10);
+      assert.ok(direction.z > 0.99);
+      assert.equal(model.getObjectByName("steel-point")!.visible, false);
+    }
+  }
+  disposePetungArrow(template);
+});
