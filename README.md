@@ -1,4 +1,4 @@
-# 🏹 ArcherScore
+# Manah
 
 A web app for recording archery practice scores. Configure ends (rambahan)
 and arrows per end, place arrows on a target, and review your local history.

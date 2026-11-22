@@ -12,7 +12,7 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Archer Score",
+  title: "Manah",
   description:
     "Lacak dan hitung skor latihan panahan Anda dengan mudah — rambahan, skor target, dan status kelulusan.",
 };

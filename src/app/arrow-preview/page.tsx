@@ -4,7 +4,7 @@ import { PetungArrowPreview } from "@/components/scoring/PetungArrowPreview";
 import "./preview.css";
 
 export const metadata: Metadata = {
-  title: "Panah Bambu Petung — ArcherScore",
+  title: "Panah Bambu Petung — Manah",
 };
 
 export default function ArrowPreviewPage() {
@@ -12,7 +12,7 @@ export default function ArrowPreviewPage() {
     <main className="petung-page">
       <div className="petung-intro">
         <Link className="petung-back" href="/">← Kembali ke latihan</Link>
-        <p className="petung-eyebrow">ARCHERSCORE / STUDI PANAH</p>
+        <p className="petung-eyebrow">MANAH / STUDI PANAH</p>
         <div className="petung-title-row">
           <div>
             <h1>Bambu <em>petung.</em></h1>
