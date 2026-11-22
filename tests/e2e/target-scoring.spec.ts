@@ -89,11 +89,14 @@ test("grouped arrows support selection, removal, reset cancellation, and end iso
   await placeArrow(page);
   await placeArrow(page);
   const dock = page.getByRole("region", { name: "Panahmu", exact: true });
-  await dock.getByRole("button", { name: "Panah 2, Skor 6", exact: true }).click();
-  await dock.getByRole("button", { name: "Pilih panah sebelumnya" }).click();
-  await expect(page.getByRole("button", { name: "Panah 1, Skor 6", exact: true }))
-    .toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Cabut", exact: true }).click();
+  const remove = dock.getByRole("button", { name: "Cabut", exact: true });
+  const first = dock.getByRole("button", { name: "Panah 1, Skor 6", exact: true });
+  await expect(dock.getByRole("button", { name: /Pilih panah (sebelumnya|berikutnya)/ })).toHaveCount(0);
+  await expect(page.getByText("Keyboard: tombol arah", { exact: false })).toHaveCount(0);
+  await expect(remove).toBeDisabled();
+  await first.click();
+  await expect(first).toHaveAttribute("aria-pressed", "true");
+  await remove.click();
   await expect(page.getByTestId("scoring-box")).toBeFocused();
   let saved = await storedDraft(page);
   expect(saved.ends[0][0].status).toBe("empty");
@@ -160,7 +163,7 @@ test("settings changes preserve the active snapshot and recorded miss positions 
   expect((await storedDraft(page)).targetSnapshot).toEqual(session.targetSnapshot);
 
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
   const practice = (await records(page)).practices[0];
   expect(practice.ends).toEqual(session.ends);
   expect(practice.userScores).toEqual([[0, 6]]);
@@ -183,7 +186,7 @@ test("keyboard entry and reduced motion complete a session without numeric input
   expect(session.ends[0].map((entry: { status: string }) => entry.status)).toEqual(["hit", "miss"]);
   await expect(page.getByRole("radio")).toHaveCount(0);
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
 });
 
 test("unavailable WebGL retains target input and numbered arrow controls", async ({ page }) => {
@@ -277,7 +280,7 @@ test("damaged spatial history reports an error without discarding the record", a
   await seedDraft(page);
   await resume(page);
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
   await page.evaluate(() => new Promise<void>((resolve, reject) => {
     const request = indexedDB.open("ArcherScoreDB");
     request.onerror = () => reject(request.error);

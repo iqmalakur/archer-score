@@ -55,18 +55,21 @@ export class ArcherScoreDB extends Dexie {
     this.version(2).stores({ completedSessions: "sessionId" });
   }
 
-  async addPractice(practice: Practice): Promise<number> {
+  async addPractice(practice: Practice): Promise<Practice> {
     validatePractice(practice);
     const { sessionId } = practice;
-    if (!sessionId) return this.practices.add(practice);
+    if (!sessionId) {
+      const id = await this.practices.add(practice);
+      return { ...practice, id };
+    }
 
     return this.transaction("rw", this.practices, this.completedSessions, async () => {
       const completed = await this.completedSessions.get(sessionId);
-      if (completed) return completed.practiceId;
+      if (completed) return (await this.practices.get(completed.practiceId)) ?? practice;
 
       const practiceId = await this.practices.add(practice);
       await this.completedSessions.add({ sessionId, practiceId });
-      return practiceId;
+      return { ...practice, id: practiceId };
     });
   }
 

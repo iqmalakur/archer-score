@@ -42,6 +42,11 @@ export function End({ target, entries, disabled, onChange, onBusyChange, onReset
   const preview = aim && aim.phase !== "canceled" ? classifyPoint(target, aim.point) : null;
   const busy = disabled || Boolean(aim);
   const recorded = entries.filter((entry) => entry.status !== "empty").length;
+  const removeSelected = () => {
+    onChange(entries.map((entry, index) => index === selected ? { id: entry.id, status: "empty" } : entry));
+    setAnnouncement(`Panah ${selected + 1} dikembalikan ke bawah.`);
+    box.current?.focus({ preventScroll: true });
+  };
 
   return (
     <div className="target-end">
@@ -55,7 +60,7 @@ export function End({ target, entries, disabled, onChange, onBusyChange, onReset
         <div
           className={`target-input${aim?.phase === "canceled" ? " aim-canceled" : ""}`}
           ref={box} tabIndex={disabled ? -1 : 0} role="group"
-          aria-label="Papan scoring" aria-describedby="target-instructions"
+          aria-label="Papan scoring"
           data-testid="scoring-box" data-aim-state={aim?.phase ?? "ready"}
           onContextMenu={(event) => event.preventDefault()}
         >
@@ -63,7 +68,10 @@ export function End({ target, entries, disabled, onChange, onBusyChange, onReset
             <AimOverlay aim={aim} target={target} entries={entries} box={box} />
           </TargetBoard>
         </div>
-        <ArrowDock entries={entries} selected={selected} disabled={busy} onSelect={setSelected} />
+        <ArrowDock
+          entries={entries} selected={selected} disabled={busy}
+          onSelect={setSelected} onRemove={removeSelected}
+        />
         <TargetArrowLayer
           surface={surface} box={box} target={target} entries={entries}
           selected={active?.id} aimPoint={aim?.phase === "aiming" ? aim.point : undefined}
@@ -78,23 +86,7 @@ export function End({ target, entries, disabled, onChange, onBusyChange, onReset
               ? "Klik/tap untuk memasang, atau tahan untuk membidik"
               : "Pilih panah yang tersedia atau cabut panah terpilih"}</span>}
       </div>
-      <div className="scoring-toolbar arrow-selection">
-        <span><strong>Panah {selected + 1}</strong> · {active && entryLabel(active)}</span>
-        <div>
-          <button
-            type="button" disabled={busy || !active || active.status === "empty"}
-            onClick={() => {
-              onChange(entries.map((entry, index) => index === selected ? { id: entry.id, status: "empty" } : entry));
-              setAnnouncement(`Panah ${selected + 1} dikembalikan ke bawah.`);
-              box.current?.focus({ preventScroll: true });
-            }}
-          >{active?.status === "legacy" ? "Kosongkan" : "Cabut"}</button>
-        </div>
-      </div>
-      <div className="scoring-toolbar end-tools">
-        <p id="target-instructions">
-          Keyboard: tombol arah untuk membidik, Shift untuk gerak halus, Enter untuk memasang, Esc untuk batal.
-        </p>
+      <div className="end-tools">
         <button
           type="button" disabled={busy || recorded === 0}
           onClick={() => onReset(() => {

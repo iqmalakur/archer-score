@@ -42,7 +42,7 @@ test("legacy draft gains a target snapshot without changing its completion ident
   await resume(page);
   await placeArrow(page, 1.2, 0);
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
   expect((await records(page)).receipts[0].sessionId).toBe(expectedId);
 });
 
@@ -83,7 +83,7 @@ test("a completed legacy draft is recognized before converting its zeros", async
   await resume(page);
   await placeArrow(page, 1.2, 0);
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
   await page.evaluate((legacy) => localStorage.setItem("endSession", JSON.stringify(legacy)), legacy);
 
   await page.reload();
@@ -103,7 +103,7 @@ test("removed arrows require explicit placement rather than automatic misses", a
   expect((await storedDraft(page)).ends[0][0].status).toBe("empty");
   await placeArrow(page, 1.2, 0);
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
   expect((await records(page)).practices[0].userScores).toEqual([[0, 0]]);
   expect(await storedDraft(page)).toBeNull();
   await page.goto("/history/1");

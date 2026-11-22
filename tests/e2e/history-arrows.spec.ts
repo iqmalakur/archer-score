@@ -15,7 +15,7 @@ async function saveHistory(page: Page, endCount: number) {
   await page.getByRole("dialog").getByRole("button", { name: "Lanjutkan", exact: true }).click();
   await expect(page.getByRole("heading", { name: `Rambahan ${endCount} dari ${endCount}` })).toBeVisible();
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
 }
 
 test("history shares one idle renderer across twenty ends and releases it on navigation", async ({ page }) => {
@@ -67,11 +67,18 @@ test("history shares one idle renderer across twenty ends and releases it on nav
   });
   await saveHistory(page, 20);
   const saved = await records(page);
+  const resultSections = page.locator("main > section");
+  const resultEnds = page.getByRole("region", { name: "Rincian Rambahan" });
+  await expect(resultEnds).toHaveAttribute("data-arrow-renderer", "ready");
+  await expect(resultEnds.locator("canvas")).toHaveCount(1);
+  await expect(resultEnds.locator("article")).toHaveCount(20);
+  const result = await resultSections.allTextContents();
 
   await page.goto("/history/1");
 
   const section = page.locator('[aria-labelledby="ends-heading"]');
   await expect(section).toHaveAttribute("data-arrow-renderer", "ready");
+  expect(await resultSections.allTextContents()).toEqual(result);
   await expect(section.locator("canvas")).toHaveCount(1);
   await expect(section.locator("[data-history-end]")).toHaveCount(20);
   const first = section.locator('[data-history-end="0"]');

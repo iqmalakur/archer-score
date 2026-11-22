@@ -52,14 +52,14 @@ test("pending save disables actions and prevents Escape", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(dialog).toBeVisible();
   await release();
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
 });
 
 test("pending deletion blocks Escape until the transaction completes", async ({ page }) => {
   await seedDraft(page);
   await resume(page);
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
   await page.goto("/history");
   await page.getByRole("button", { name: "Hapus Latihan uji", exact: true }).click();
   const release = await holdWrites(page);

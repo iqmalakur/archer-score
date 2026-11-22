@@ -7,11 +7,11 @@ interface ArrowDockProps {
   selected: number;
   disabled: boolean;
   onSelect: (index: number) => void;
+  onRemove: () => void;
 }
 
-export function ArrowDock({ entries, selected, disabled, onSelect }: ArrowDockProps) {
-  const placed = entries.flatMap((entry, index) => entry.status === "hit" || entry.status === "miss" ? [index] : []);
-  const position = placed.indexOf(selected);
+export function ArrowDock({ entries, selected, disabled, onSelect, onRemove }: ArrowDockProps) {
+  const active = entries[selected];
   const scroll = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const viewport = scroll.current;
@@ -28,18 +28,13 @@ export function ArrowDock({ entries, selected, disabled, onSelect }: ArrowDockPr
       <div className="arrow-dock-label">
         <span>PANAHMU</span>
         <span>{entries.filter((entry) => entry.status === "empty").length} tersedia</span>
-        <div className="arrow-dock-navigation">
-          <button
-            type="button" aria-label="Pilih panah sebelumnya"
-            disabled={disabled || position <= 0}
-            onClick={() => onSelect(placed[position - 1])}
-          >←</button>
-          <button
-            type="button" aria-label="Pilih panah berikutnya"
-            disabled={disabled || position < 0 || position >= placed.length - 1}
-            onClick={() => onSelect(placed[position + 1])}
-          >→</button>
-        </div>
+        <button
+          type="button"
+          disabled={disabled || !active || active.status === "empty"}
+          onClick={onRemove}
+        >
+          {active?.status === "legacy" ? "Kosongkan" : "Cabut"}
+        </button>
       </div>
       <div ref={scroll} className="arrow-dock-scroll" role="group" aria-label="Pilihan panah">
         {entries.map((entry, index) => (

@@ -26,8 +26,7 @@
   letter-spacing: 0.2em;
 }
 
-.scoring-page-heading h1,
-.scoring-result h1 {
+.scoring-page-heading h1 {
   font-size: clamp(24px, 4vw, 34px);
   font-weight: 700;
   letter-spacing: -0.045em;
@@ -249,21 +248,6 @@ button.scoring-primary {
 
 .scoring-navigation {
   margin-top: 20px;
-}
-
-.scoring-result {
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface);
-}
-
-.scoring-result h1 {
-  margin-bottom: 20px;
-}
-
-.scoring-result > button {
-  margin-top: 24px;
 }
 
 .target-editor-layout {

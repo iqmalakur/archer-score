@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/components/Alert";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { completeEnd, scoreProjection } from "@/lib/target-session";
+import { PracticeDetails } from "@/components/PracticeDetails";
+import { completeEnd } from "@/lib/target-session";
 import { Setup } from "./Setup";
-import { Result } from "./Result";
 import { End } from "./End";
 import { useScoringSession } from "./useScoringSession";
 
@@ -113,11 +113,26 @@ function StorageMessages({ scoring }: { scoring: Scoring }) {
 
 export function Main() {
   const scoring = useScoringSession();
+  const { result, dialog } = scoring;
+  const main = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (result && !dialog) {
+      main.current?.focus({ preventScroll: true });
+      window.scrollTo(0, 0);
+    }
+  }, [result, dialog]);
+
   if (!scoring.initial) return <LoadingScreen />;
 
   return (
     <>
-      <main className="scoring-main">
+      <main
+        ref={main} tabIndex={result ? -1 : undefined}
+        className={result
+          ? "mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 pb-14 focus:outline-none sm:p-8 lg:gap-8"
+          : "scoring-main"}
+      >
         <StorageMessages scoring={scoring} />
         {!scoring.session && (
           <section className="scoring-setup-panel">
@@ -133,13 +148,19 @@ export function Main() {
             />
           </section>
         )}
-        {scoring.session && !scoring.result && <SessionScreen scoring={scoring} />}
-        {scoring.result && scoring.session && (
-          <section className="scoring-result">
-            <h1>Hasil</h1>
-            <Result {...scoreProjection(scoring.session)} />
-            <button type="button" onClick={scoring.restart}>Ulangi lagi</button>
-          </section>
+        {scoring.session && !result && <SessionScreen scoring={scoring} />}
+        {result && (
+          <>
+            <PracticeDetails practice={result} />
+            <button
+              type="button" onClick={scoring.restart}
+              className="min-h-11 w-fit cursor-pointer rounded-xl border border-line bg-surface px-4 py-2
+                text-sm font-semibold hover:bg-surface-muted focus-visible:outline-2
+                focus-visible:outline-offset-4 focus-visible:outline-primary"
+            >
+              Ulangi lagi
+            </button>
+          </>
         )}
       </main>
       <Alert

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AlertProps } from "@/components/Alert";
 import type { ArrowEntry, SetupDraft, TargetSession } from "@/types/target-session";
-import { db } from "@/lib/db";
+import { db, type Practice } from "@/lib/db";
 import { createTarget, prepareTargetSettings, readTargetSettings } from "@/lib/target-settings";
 import { completeEnd, emptyEnds, isValidSetupDraft, scoreProjection } from "@/lib/target-session";
 import { DEFAULT_SETUP, loadScoringState, saveScoringDraft, STORAGE_WARNING } from "@/lib/scoring-storage";
@@ -38,7 +38,7 @@ export function useScoringSession() {
   const [setup, setSetup] = useState(DEFAULT_SETUP);
   const [target, setTarget] = useState(createTarget);
   const [session, setSession] = useState<TargetSession | null>(null);
-  const [result, setResult] = useState(false);
+  const [result, setResult] = useState<Practice | null>(null);
   const [message, setMessage] = useState("");
   const dialogs = useScoringDialog();
   const { setDialog } = dialogs;
@@ -108,7 +108,7 @@ export function useScoringSession() {
       else { setMessage("Target tersimpan tidak valid. Periksa dan simpan ulang melalui Setting."); return; }
     }
     completed.current = false;
-    setResult(false);
+    setResult(null);
     setCleanupFailed(false);
     setTarget(settings.target);
     commit({
@@ -127,7 +127,7 @@ export function useScoringSession() {
   const finish = async () => {
     const current = latest.current;
     if (!current || completed.current || !current.ends.every(completeEnd)) return;
-    await db.addPractice({
+    const practice = await db.addPractice({
       ...scoreProjection(current), schemaVersion: 2, targetSnapshot: current.targetSnapshot,
       ends: current.ends, title: current.title, distance: current.distance,
       sessionId: current.sessionId, createdAt: new Date(),
@@ -135,7 +135,7 @@ export function useScoringSession() {
     completed.current = true;
     clearDraft();
     setMessage("");
-    setResult(true);
+    setResult(practice);
   };
   return {
     ...dialogs, initial, setup, target, session, result, message, cleanupFailed,
@@ -145,7 +145,7 @@ export function useScoringSession() {
     restart: () => {
       latest.current = null;
       setSession(null);
-      setResult(false);
+      setResult(null);
       try { setTarget(readTargetSettings(localStorage)); }
       catch { setMessage("Target tidak dapat dibaca. Periksa dan simpan ulang melalui Setting."); }
     },

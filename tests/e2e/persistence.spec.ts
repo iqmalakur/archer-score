@@ -14,7 +14,7 @@ for (const store of ["practices", "completedSessions"]) {
     expect(await records(page)).toEqual({ practices: [], receipts: [] });
     await fault(page);
     await dialog.getByRole("button", { name: "Coba lagi" }).click();
-    await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
     const saved = await records(page);
     expect(saved.practices).toHaveLength(1);
     expect(saved.receipts).toEqual([{ sessionId: draft.sessionId, practiceId: saved.practices[0].id }]);
@@ -30,11 +30,14 @@ test("two tabs completing the same session create one history record", async ({ 
   await resume(second);
   await Promise.all([finish(page), finish(second)]);
   for (const tab of [page, second]) {
-    await expect(tab.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+    await expect(tab.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
   }
   const saved = await records(page);
   expect(saved.practices).toHaveLength(1);
   expect(saved.receipts).toHaveLength(1);
+  for (const tab of [page, second]) {
+    await expect(tab.locator("main time")).toHaveAttribute("datetime", saved.practices[0].createdAt.toISOString());
+  }
 });
 
 test("cleanup failure cannot resume or resurrect a completed and deleted practice", async ({ page }) => {
@@ -43,7 +46,7 @@ test("cleanup failure cannot resume or resurrect a completed and deleted practic
   await resume(page);
   await fault(page, "cleanup");
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
   await expect(page.getByRole("main").getByRole("alert")).toContainText("draft belum dapat dihapus");
   expect(await storedDraft(page)).not.toBeNull();
   await page.reload();
@@ -67,7 +70,7 @@ test("history read and delete failures expose retry without losing the record", 
   await seedDraft(page);
   await resume(page);
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
   await fault(page, "practices:read");
   await page.goto("/history");
   await expect(page.getByRole("heading", { name: "Gagal Memuat Riwayat" })).toBeVisible();
