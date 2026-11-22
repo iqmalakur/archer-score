@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { draft, fault, finish, installFaults, records, resume, seedDraft, storedDraft } from "./helpers";
+import { draft, fault, finish, installFaults, placeArrow, records, resume, seedDraft, storedDraft } from "./helpers";
 
 for (const store of ["practices", "completedSessions"]) {
   test(`${store} write failure retains draft and rolls back completion`, async ({ page }) => {
@@ -28,6 +28,10 @@ test("two tabs completing the same session create one history record", async ({ 
   const second = await context.newPage();
   await second.goto("/");
   await resume(second);
+  await second.getByRole("button", { name: "Panah 2, Miss", exact: true }).click();
+  await second.getByRole("button", { name: "Cabut", exact: true }).click();
+  await placeArrow(second);
+
   await Promise.all([finish(page), finish(second)]);
   for (const tab of [page, second]) {
     await expect(tab.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
@@ -35,8 +39,10 @@ test("two tabs completing the same session create one history record", async ({ 
   const saved = await records(page);
   expect(saved.practices).toHaveLength(1);
   expect(saved.receipts).toHaveLength(1);
+  const total = saved.practices[0].userScores[0].reduce((sum, score) => sum + score, 0);
   for (const tab of [page, second]) {
-    await expect(tab.locator("main time")).toHaveAttribute("datetime", saved.practices[0].createdAt.toISOString());
+    const ends = tab.getByRole("region", { name: "Rincian Rambahan" });
+    await expect(ends.getByText(`${total} / 12`, { exact: true })).toBeVisible();
   }
 });
 

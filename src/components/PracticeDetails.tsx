@@ -8,7 +8,7 @@ import { HistoryTargetArrows } from "@/components/history/HistoryTargetArrows";
 import { Result } from "@/components/scoring/Result";
 import { TargetBoard } from "@/components/scoring/TargetBoard";
 
-function PracticeEnds({ practice }: { practice: Practice }) {
+export function PracticeEnds({ practice }: { practice: Practice }) {
   const surface = useRef<HTMLElement>(null);
   const { totalScore } = calculateScore(practice);
   const maxEndScore = Math.max(0, ...practice.targetScores) * practice.arrowCount;
@@ -16,11 +16,9 @@ function PracticeEnds({ practice }: { practice: Practice }) {
   return (
     <section ref={surface} aria-labelledby="ends-heading" className="flex flex-col gap-4">
       <h2 id="ends-heading" className="text-lg font-semibold text-ink">Rincian Rambahan</h2>
-      <p className="text-sm text-ink-muted">
-        {practice.schemaVersion === 2
-          ? "Miss ditampilkan pada posisi yang dicatat. Skor sesi lama tanpa posisi tidak digambar pada papan."
-          : "Panah yang tidak diisi dianggap meleset dan bernilai 0."}
-      </p>
+      {practice.schemaVersion !== 2 && (
+        <p className="text-sm text-ink-muted">Panah yang tidak diisi dianggap meleset dan bernilai 0.</p>
+      )}
       {practice.userScores.map((scores, endIndex) => (
         <article key={endIndex} className="rounded-2xl border border-line bg-surface/75 p-5 shadow-sm sm:p-6">
           <h3 className="font-semibold text-ink">Rambahan {endIndex + 1}</h3>
@@ -65,76 +63,75 @@ function PracticeEnds({ practice }: { practice: Practice }) {
   );
 }
 
-function PracticeSummary({ practice }: { practice: Practice }) {
+export function PracticeInfo({ practice }: { practice: Practice }) {
   const savedAt = new Date(practice.createdAt);
 
   return (
-    <>
-      <section className="rounded-2xl border border-line bg-surface/75 p-5 shadow-md sm:p-6">
-        <h1 className="wrap-anywhere text-xl font-bold text-ink sm:text-2xl">
-          {getPracticeTitle(practice)}
-        </h1>
-        <p className="mt-2 text-sm text-ink-muted">
-          Disimpan pada{" "}
-          <time dateTime={savedAt.toISOString()}>
-            {savedAt.toLocaleString("id-ID", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </time>
-        </p>
+    <section className="rounded-2xl border border-line bg-surface/75 p-5 shadow-md sm:p-6">
+      <h1 className="wrap-anywhere text-xl font-bold text-ink sm:text-2xl">
+        {getPracticeTitle(practice)}
+      </h1>
+      <p className="mt-2 text-sm text-ink-muted">
+        Disimpan pada{" "}
+        <time dateTime={savedAt.toISOString()}>
+          {savedAt.toLocaleString("id-ID", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </time>
+      </p>
 
-        <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-line pt-5 text-sm">
-          <div>
-            <dt className="text-ink-muted">Jarak</dt>
-            <dd className="mt-1 font-semibold text-ink">
-              {practice.distance === undefined ? "Tidak tercatat" : `${practice.distance} m`}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Rambahan</dt>
-            <dd className="mt-1 font-semibold text-ink">{practice.endCount}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Panah per rambahan</dt>
-            <dd className="mt-1 font-semibold text-ink">{practice.arrowCount}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Total panah yang direncanakan</dt>
-            <dd className="mt-1 font-semibold text-ink">{practice.endCount * practice.arrowCount}</dd>
-          </div>
-          <div className="col-span-2">
-            <dt className="text-ink-muted">Pilihan skor target</dt>
-            <dd className="mt-1 font-semibold text-ink">{practice.targetScores.join(", ") || "Tidak tercatat"}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <section
-        aria-labelledby="result-heading"
-        className="rounded-2xl border border-line bg-surface p-5 shadow-md sm:p-6"
-      >
-        <h2 id="result-heading" className="mb-4 text-center text-lg font-semibold text-ink">Hasil Latihan</h2>
-        <Result
-          endCount={practice.endCount}
-          arrowCount={practice.arrowCount}
-          targetScores={practice.targetScores}
-          userScores={practice.userScores}
-        />
-        <p className="mt-4 text-center text-sm text-ink-muted">Batas lulus: 50%</p>
-      </section>
-    </>
+      <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-line pt-5 text-sm">
+        <div>
+          <dt className="text-ink-muted">Jarak</dt>
+          <dd className="mt-1 font-semibold text-ink">
+            {practice.distance === undefined ? "Tidak tercatat" : `${practice.distance} m`}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-ink-muted">Rambahan</dt>
+          <dd className="mt-1 font-semibold text-ink">{practice.endCount}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-muted">Panah per rambahan</dt>
+          <dd className="mt-1 font-semibold text-ink">{practice.arrowCount}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-muted">Total panah yang direncanakan</dt>
+          <dd className="mt-1 font-semibold text-ink">{practice.endCount * practice.arrowCount}</dd>
+        </div>
+        <div className="col-span-2">
+          <dt className="text-ink-muted">Pilihan skor target</dt>
+          <dd className="mt-1 font-semibold text-ink">{practice.targetScores.join(", ") || "Tidak tercatat"}</dd>
+        </div>
+      </dl>
+    </section>
   );
 }
 
-export function PracticeDetails({ practice }: { practice: Practice }) {
+export function PracticeResult({
+  practice,
+  heading: Heading,
+}: {
+  practice: Practice;
+  heading: "h1" | "h2";
+}) {
   return (
-    <>
-      <PracticeSummary practice={practice} />
-      <PracticeEnds practice={practice} />
-    </>
+    <section
+      aria-labelledby="result-heading"
+      className="rounded-2xl border border-line bg-surface p-5 shadow-md sm:p-6"
+    >
+      <Heading id="result-heading" className="mb-4 text-center text-lg font-semibold text-ink">Hasil Latihan</Heading>
+      <Result
+        endCount={practice.endCount}
+        arrowCount={practice.arrowCount}
+        targetScores={practice.targetScores}
+        userScores={practice.userScores}
+      />
+      <p className="mt-4 text-center text-sm text-ink-muted">Batas lulus: 50%</p>
+    </section>
   );
 }

@@ -163,13 +163,25 @@ test("settings changes preserve the active snapshot and recorded miss positions 
   expect((await storedDraft(page)).targetSnapshot).toEqual(session.targetSnapshot);
 
   await finish(page);
-  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", level: 1 })).toBeVisible();
+  await expect(page.getByText("Pilihan skor target", { exact: true })).toHaveCount(0);
+  const restart = page.getByRole("button", { name: "Ulangi lagi", exact: true });
+  const neighbors = await restart.evaluate((button) => [
+    button.previousElementSibling?.getAttribute("aria-labelledby"),
+    button.nextElementSibling?.getAttribute("aria-labelledby"),
+  ]);
+  expect(neighbors).toEqual(["result-heading", "ends-heading"]);
+  const missNote = page.getByText(/Miss ditampilkan pada posisi/);
+  await expect(missNote).toHaveCount(0);
   const practice = (await records(page)).practices[0];
   expect(practice.ends).toEqual(session.ends);
   expect(practice.userScores).toEqual([[0, 6]]);
+  await restart.click();
+  await expect(page.getByRole("heading", { name: "Scoring Setup" })).toBeVisible();
   await page.goto(`/history/${practice.id}`);
   await expect(page.locator('[data-arrow-id="1:1"]')).toBeVisible();
-  await expect(page.getByText(/Miss ditampilkan pada posisi/)).toBeVisible();
+  await expect(page.getByText("Pilihan skor target", { exact: true })).toBeVisible();
+  await expect(missNote).toHaveCount(0);
 });
 
 test("keyboard entry and reduced motion complete a session without numeric inputs", async ({ page }) => {

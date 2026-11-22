@@ -107,7 +107,8 @@ test("removed arrows require explicit placement rather than automatic misses", a
   expect((await records(page)).practices[0].userScores).toEqual([[0, 0]]);
   expect(await storedDraft(page)).toBeNull();
   await page.goto("/history/1");
-  await expect(page.getByText(/Miss ditampilkan pada posisi/)).toBeVisible();
+  await expect(page.getByRole("region", { name: "Rincian Rambahan" }).getByText("Miss", { exact: true }))
+    .toHaveCount(2);
 });
 
 test("new sessions use Setting and preserve unfinished Setup fields", async ({ page }) => {

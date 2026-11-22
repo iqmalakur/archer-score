@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { db, type Practice } from "@/lib/db";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { PracticeDetails } from "@/components/PracticeDetails";
+import { PracticeEnds, PracticeInfo, PracticeResult } from "@/components/PracticeDetails";
 import { StatusCard } from "@/components/StatusCard";
 
 function HistoryBackLink() {
@@ -86,7 +86,9 @@ export const HistoryDetail = ({ id }: { id: string }) => {
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 pb-14 sm:p-8 lg:gap-8">
       <HistoryBackLink />
 
-      <PracticeDetails practice={practice} />
+      <PracticeInfo practice={practice} />
+      <PracticeResult practice={practice} heading="h2" />
+      <PracticeEnds practice={practice} />
     </main>
   );
 };

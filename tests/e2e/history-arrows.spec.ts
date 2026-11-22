@@ -67,7 +67,7 @@ test("history shares one idle renderer across twenty ends and releases it on nav
   });
   await saveHistory(page, 20);
   const saved = await records(page);
-  const resultSections = page.locator("main > section");
+  const resultSections = page.getByRole("region", { name: /^(Hasil Latihan|Rincian Rambahan)$/ });
   const resultEnds = page.getByRole("region", { name: "Rincian Rambahan" });
   await expect(resultEnds).toHaveAttribute("data-arrow-renderer", "ready");
   await expect(resultEnds.locator("canvas")).toHaveCount(1);

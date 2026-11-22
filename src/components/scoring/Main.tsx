@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/components/Alert";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { PracticeDetails } from "@/components/PracticeDetails";
+import { PracticeEnds, PracticeResult } from "@/components/PracticeDetails";
 import { completeEnd } from "@/lib/target-session";
 import { Setup } from "./Setup";
 import { End } from "./End";
@@ -151,15 +151,16 @@ export function Main() {
         {scoring.session && !result && <SessionScreen scoring={scoring} />}
         {result && (
           <>
-            <PracticeDetails practice={result} />
+            <PracticeResult practice={result} heading="h1" />
             <button
               type="button" onClick={scoring.restart}
               className="min-h-11 w-fit cursor-pointer rounded-xl border border-line bg-surface px-4 py-2
-                text-sm font-semibold hover:bg-surface-muted focus-visible:outline-2
+                self-end text-sm font-semibold hover:bg-surface-muted focus-visible:outline-2
                 focus-visible:outline-offset-4 focus-visible:outline-primary"
             >
               Ulangi lagi
             </button>
+            <PracticeEnds practice={result} />
           </>
         )}
       </main>
