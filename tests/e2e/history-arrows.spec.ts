@@ -87,6 +87,9 @@ test("history shares one idle renderer across twenty ends and releases it on nav
   await expect(first.locator('[data-arrow-id="1:12"]')).toHaveCount(0);
   await first.screenshot({ path: "test-results/history-arrows-desktop.png" });
   await page.setViewportSize({ width: 390, height: 844 });
+  const historyTab = page.getByRole("navigation", { name: "Navigasi utama" })
+    .getByRole("link", { name: "Riwayat" });
+  await expect(historyTab).toHaveAttribute("aria-current", "location");
   const last = section.locator('[data-history-end="19"]');
   await last.scrollIntoViewIfNeeded();
   await last.screenshot({ path: "test-results/history-arrows-mobile.png" });
@@ -115,6 +118,7 @@ test("history shares one idle renderer across twenty ends and releases it on nav
   await page.getByRole("link", { name: "Kembali ke Riwayat" }).click();
 
   await expect(page.getByRole("heading", { name: "Riwayat Latihan" })).toBeVisible();
+  await expect(historyTab).toHaveAttribute("aria-current", "page");
   expect((await counts()).deletions).toBeGreaterThan(before.deletions);
   expect((await counts()).framebufferDeletions).toBeGreaterThan(before.framebufferDeletions);
 });

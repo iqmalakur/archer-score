@@ -1,5 +1,3 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { ThemeToggle } from "../ThemeToggle";
@@ -7,21 +5,27 @@ import { Navbar } from "./Navbar";
 
 export const Header = () => {
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-line bg-background/70 backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
+    <header className="sticky top-0 z-40 border-b border-line bg-background pt-[env(safe-area-inset-top)]">
+      <div className="mx-auto flex h-15 max-w-5xl items-center gap-4 px-4 sm:px-8">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2 rounded-md text-2xl font-extrabold tracking-tight
-            text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary
-            sm:text-3xl"
+          className="mr-auto flex min-h-11 shrink-0 items-center gap-2 rounded-lg text-xl font-bold
+            tracking-tight text-ink focus-visible:outline-2 focus-visible:outline-offset-2
+            focus-visible:outline-primary"
         >
-          <Image src="/brand/manah-mark.svg" alt="" width={36} height={36} unoptimized />
+          <Image
+            src="/brand/manah-mark.svg"
+            alt=""
+            width={36}
+            height={36}
+            loading="eager"
+            className="rounded-xl bg-primary-soft"
+            unoptimized
+          />
           Manah
         </Link>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <ThemeToggle />
-          <Navbar />
-        </div>
+        <Navbar />
+        <ThemeToggle />
       </div>
     </header>
   );

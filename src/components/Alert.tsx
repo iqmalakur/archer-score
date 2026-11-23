@@ -10,6 +10,7 @@ export interface AlertProps {
   cancelText?: string;
   type?: "warning" | "success" | "danger" | "info";
   pending?: boolean;
+  fallbackFocusRef?: React.RefObject<HTMLElement | null>;
   onCancel?: () => void;
   onDismiss?: () => void;
   onConfirm?: () => void | Promise<void>;
@@ -21,7 +22,6 @@ const typeConfig: Record<
     icon: React.ReactNode;
     iconBg: string;
     iconColor: string;
-    confirmBtn: string;
   }
 > = {
   warning: {
@@ -43,8 +43,7 @@ const typeConfig: Record<
       </svg>
     ),
     iconBg: "bg-amber-100 dark:bg-amber-500/20",
-    iconColor: "text-amber-500",
-    confirmBtn: "bg-amber-500 shadow-amber-500/30",
+    iconColor: "text-amber-800 dark:text-amber-300",
   },
   danger: {
     icon: (
@@ -65,8 +64,7 @@ const typeConfig: Record<
       </svg>
     ),
     iconBg: "bg-red-100 dark:bg-red-500/20",
-    iconColor: "text-red-500",
-    confirmBtn: "bg-red-500 shadow-red-500/30",
+    iconColor: "text-red-700 dark:text-red-300",
   },
   success: {
     icon: (
@@ -87,8 +85,7 @@ const typeConfig: Record<
       </svg>
     ),
     iconBg: "bg-emerald-100 dark:bg-emerald-500/20",
-    iconColor: "text-emerald-500",
-    confirmBtn: "bg-emerald-500 shadow-emerald-500/30",
+    iconColor: "text-emerald-700 dark:text-emerald-300",
   },
   info: {
     icon: (
@@ -109,8 +106,7 @@ const typeConfig: Record<
       </svg>
     ),
     iconBg: "bg-sky-100 dark:bg-sky-500/20",
-    iconColor: "text-sky-500",
-    confirmBtn: "bg-sky-500 shadow-sky-500/30",
+    iconColor: "text-sky-700 dark:text-sky-300",
   },
 };
 
@@ -122,6 +118,7 @@ export const Alert = ({
   cancelText = "Batal",
   type = "warning",
   pending = false,
+  fallbackFocusRef,
   onCancel,
   onDismiss,
   onConfirm,
@@ -136,19 +133,28 @@ export const Alert = ({
     const dialog = dialogRef.current;
     if (!show || !dialog) return;
     const trigger = document.activeElement;
+    const fallback = fallbackFocusRef?.current;
+
     dialog.showModal();
 
     return () => {
       if (dialog.open) dialog.close();
-      if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus();
+      if (trigger instanceof HTMLElement && trigger.isConnected && trigger !== document.body) {
+        trigger.focus();
+      } else if (fallback?.isConnected) {
+        fallback.focus();
+      }
     };
-  }, [show]);
+  }, [show, fallbackFocusRef]);
 
   if (!show) {
     return null;
   }
 
-  const { icon, iconBg, iconColor, confirmBtn } = typeConfig[type];
+  const { icon, iconBg, iconColor } = typeConfig[type];
+  const confirmColor = type === "danger"
+    ? "bg-red-700 text-white dark:bg-red-300 dark:text-red-950"
+    : "bg-primary text-on-primary";
 
   return (
     <dialog
@@ -168,34 +174,37 @@ export const Alert = ({
         event.preventDefault();
         (event.shiftKey ? confirmRef.current : cancelRef.current)?.focus();
       }}
-      className="m-auto max-h-[calc(100%_-_2rem)] w-[calc(100%_-_2rem)] max-w-md
-        overflow-y-auto rounded-2xl border border-line bg-surface p-6 text-ink shadow-2xl
-        backdrop:bg-black/50 backdrop:backdrop-blur-sm sm:p-8"
-      style={{ animation: "dialogScaleIn 0.25s ease-out both" }}
+      className="fixed inset-x-0 top-auto bottom-0 m-0 max-h-[calc(100dvh_-_1rem)] w-full
+        max-w-none overflow-y-auto overscroll-contain rounded-t-3xl border border-line bg-surface
+        p-5 pb-[calc(1.25rem_+_env(safe-area-inset-bottom))] text-ink shadow-2xl
+        backdrop:bg-black/55 sm:inset-0 sm:m-auto sm:w-[calc(100%_-_2rem)] sm:max-w-md
+        sm:rounded-2xl sm:p-6"
     >
-      <div className="flex flex-col items-center gap-4 text-center">
+      <div className="flex flex-col items-start gap-4">
         <span
-          className={`flex h-12 w-12 items-center justify-center rounded-full ${iconBg} ${iconColor}`}
+          className={`grid size-10 place-items-center rounded-xl ${iconBg} ${iconColor}`}
         >
           {icon}
         </span>
 
         <div>
-          <h2 id={titleId} className="text-lg font-semibold text-ink sm:text-xl">
+          <h2 id={titleId} className="wrap-anywhere text-xl font-bold tracking-tight text-ink">
             {title}
           </h2>
           {message && (
-            <p id={messageId} className="mt-1 text-sm text-ink-muted">{message}</p>
+            <p id={messageId} className="mt-2 wrap-anywhere text-sm leading-relaxed text-ink-muted">
+              {message}
+            </p>
           )}
         </div>
 
-        <div className="flex w-full gap-3">
+        <div className="mt-1 grid w-full grid-cols-2 gap-2 sm:gap-3">
           <button
             ref={cancelRef}
             type="button"
             disabled={pending}
-            className="flex-1 cursor-pointer rounded-xl border border-line bg-surface px-6 py-3
-              font-semibold text-ink-muted transition-all hover:bg-surface-muted"
+            className="min-h-11 cursor-pointer rounded-xl border border-line bg-surface px-2 py-2
+              text-sm font-semibold text-ink hover:bg-surface-muted disabled:cursor-wait disabled:opacity-60"
             onClick={onCancel}
           >
             {cancelText}
@@ -204,8 +213,8 @@ export const Alert = ({
             ref={confirmRef}
             type="button"
             disabled={pending}
-            className={`flex-1 cursor-pointer rounded-xl px-6 py-3 font-semibold text-white
-              shadow-lg transition-all hover:brightness-110 active:scale-[0.97] ${confirmBtn}`}
+            className={`min-h-11 cursor-pointer rounded-xl px-2 py-2 text-sm font-semibold
+              hover:brightness-110 disabled:cursor-wait disabled:opacity-60 ${confirmColor}`}
             onClick={onConfirm}
           >
             <span role={pending ? "status" : undefined}>

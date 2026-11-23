@@ -42,7 +42,7 @@ export async function loadScoringState() {
   catch {
     state.settingsError = true;
     state.message = "Target tersimpan tidak dapat dibaca. "
-      + "Periksa dan simpan target melalui Setting sebelum membuat sesi baru.";
+      + "Periksa dan simpan target melalui Pengaturan sebelum membuat sesi baru.";
   }
   if (savedDraft === null) return state;
   state.blocked = true;

@@ -3,32 +3,35 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 :root {
-  --bg: #f7faf9;
-  --surface: #ffffff;
-  --surface-muted: #eef4f1;
-  --ink: #0f1f17;
-  --ink-muted: #5b6b64;
-  --line: #dde8e2;
-  --primary: #0d9d6d;
-  --primary-dark: #087a54;
-  --primary-soft: #d9f5e9;
-  --accent: #e9a13b;
-  --accent-dark: #c67f1f;
+  --bg: #f6f4ec;
+  --surface: #fffdf7;
+  --surface-muted: #eceee5;
+  --ink: #182a21;
+  --ink-muted: #536359;
+  --line: #dcdfd3;
+  --primary: #28583e;
+  --primary-dark: #214b35;
+  --primary-soft: #e0edda;
+  --on-primary: #fffdf7;
+  --accent: #edb04c;
+  --accent-dark: #825510;
+  --tab-bar-height: 4.5rem;
   color-scheme: light;
 }
 
 [data-theme="dark"] {
-  --bg: #0c1513;
-  --surface: #14201c;
-  --surface-muted: #1d2b26;
-  --ink: #e7f2ed;
-  --ink-muted: #88a098;
-  --line: #23372f;
-  --primary: #2fd49a;
-  --primary-dark: #10b981;
-  --primary-soft: #0d3a2c;
-  --accent: #ffc25e;
-  --accent-dark: #f59e0b;
+  --bg: #101c17;
+  --surface: #182820;
+  --surface-muted: #21362b;
+  --ink: #edf1e7;
+  --ink-muted: #a9bcaf;
+  --line: #34483c;
+  --primary: #a6cea9;
+  --primary-dark: #b8daba;
+  --primary-soft: #294c37;
+  --on-primary: #172d20;
+  --accent: #f0b95e;
+  --accent-dark: #ffc974;
   color-scheme: dark;
 }
 
@@ -42,6 +45,7 @@
   --color-primary: var(--primary);
   --color-primary-dark: var(--primary-dark);
   --color-primary-soft: var(--primary-soft);
+  --color-on-primary: var(--on-primary);
   --color-accent: var(--accent);
   --color-accent-dark: var(--accent-dark);
   --font-sans: var(--font-inter);
@@ -49,14 +53,25 @@
 }
 
 html {
+  background-color: var(--bg);
+  scroll-padding-top: calc(4rem + env(safe-area-inset-top));
+  scroll-padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body {
   margin: 0;
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+  padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
   background-color: var(--bg);
   color: var(--ink);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (width >= 48rem) {
+  :root {
+    --tab-bar-height: 0px;
+  }
 }
 
 @keyframes fadeInUp {

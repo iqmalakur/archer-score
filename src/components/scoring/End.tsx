@@ -51,16 +51,22 @@ export function End({ target, entries, disabled, onChange, onBusyChange, onReset
   return (
     <div className="target-end">
       <div className="end-summary">
-        <span>Panah <strong>{selected + 1}/{entries.length}</strong> · {recorded} tercatat</span>
-        <span>Subtotal <strong data-testid="end-subtotal">
-          {entries.reduce((sum, entry) => sum + entryScore(entry), 0)}
-        </strong></span>
+        <div>
+          <span>Panah terpilih</span>
+          <strong>{selected + 1}/{entries.length}</strong>
+        </div>
+        <div>
+          <span>Subtotal</span>
+          <strong data-testid="end-subtotal">
+            {entries.reduce((sum, entry) => sum + entryScore(entry), 0)}
+          </strong>
+        </div>
       </div>
       <div className="scoring-surface" ref={surface}>
         <div
           className={`target-input${aim?.phase === "canceled" ? " aim-canceled" : ""}`}
           ref={box} tabIndex={disabled ? -1 : 0} role="group"
-          aria-label="Papan scoring"
+          aria-label="Papan scoring" aria-describedby="board-keyboard-help"
           data-testid="scoring-box" data-aim-state={aim?.phase ?? "ready"}
           onContextMenu={(event) => event.preventDefault()}
         >
@@ -78,15 +84,15 @@ export function End({ target, entries, disabled, onChange, onBusyChange, onReset
         />
       </div>
 
-      <div className={`aim-status${aim?.phase === "canceled" ? " is-canceled" : ""}`}>
-        {aim?.phase === "canceled"
-          ? <span role="alert">✕ Bidikan dibatalkan — lepaskan untuk membidik ulang</span>
-          : preview ? <span>◎ {preview.status === "hit" ? `Skor ${preview.score}` : "Miss · di luar target"}</span>
-            : <span>{active?.status === "empty"
-              ? "Klik/tap untuk memasang, atau tahan untuk membidik"
-              : "Pilih panah yang tersedia atau cabut panah terpilih"}</span>}
-      </div>
       <div className="end-tools">
+        <p className={`aim-status${aim?.phase === "canceled" ? " is-canceled" : ""}`}>
+          {aim?.phase === "canceled"
+            ? <span role="alert">Bidikan dibatalkan — lepaskan untuk mencoba lagi.</span>
+            : preview ? <span>{preview.status === "hit" ? `Skor ${preview.score}` : "Miss · di luar target"}</span>
+              : <span>{active?.status === "empty"
+                ? "Ketuk papan untuk mencatat. Tahan untuk melihat detail."
+                : "Pilih panah yang tersedia atau cabut panah terpilih."}</span>}
+        </p>
         <button
           type="button" disabled={busy || recorded === 0}
           onClick={() => onReset(() => {
@@ -96,6 +102,9 @@ export function End({ target, entries, disabled, onChange, onBusyChange, onReset
           })}
         >Reset rambahan</button>
       </div>
+      <p id="board-keyboard-help" className="sr-only">
+        Gunakan tombol panah untuk memilih posisi. Tekan Enter untuk mencatat.
+      </p>
       <p className="sr-only" role="status" aria-live="polite">{announcement}</p>
     </div>
   );

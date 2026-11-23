@@ -75,18 +75,33 @@
 }
 
 .end-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
   color: var(--ink-muted);
-  font-size: 12px;
+  background: var(--line);
+}
+
+.end-summary > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 6px;
+  padding: 6px 10px;
+  background: var(--surface);
+  font-size: 0.75rem;
 }
 
 .end-summary strong {
   color: var(--ink);
-  font-size: 17px;
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .scoring-surface {
@@ -95,10 +110,10 @@
 
 .target-input {
   position: relative;
-  width: min(100%, max(250px, calc((100svh - 440px) * 1.130435)));
+  width: min(100%, 34rem, max(250px, calc((100svh - 330px) * 1.130435)));
   margin: 0 auto;
   border-radius: 6px;
-  outline: 1px solid #bec5b9;
+  outline: 1px solid var(--line);
   touch-action: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -118,12 +133,11 @@
 }
 
 .arrow-dock {
-  margin-top: 22px;
-  padding: 14px 12px calc(8px + env(safe-area-inset-bottom, 0px));
-  border: 1px solid #34483c;
-  border-radius: 16px;
-  color: #e3e8db;
-  background: linear-gradient(135deg, #283e30, #15291f);
+  margin-top: 12px;
+  padding: 6px;
+  border-radius: 14px;
+  color: var(--on-scorecard);
+  background: var(--scorecard);
 }
 
 .arrow-dock-label {
@@ -131,17 +145,24 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 0 4px 8px;
-  color: #b6c5b4;
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  padding: 0 4px 2px;
+}
+
+.arrow-dock-label h2 {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.arrow-dock-label p {
+  color: var(--scorecard-muted);
+  font-size: 0.75rem;
 }
 
 .scoring-main .arrow-dock-label button {
   min-width: 44px;
   padding: 8px 12px;
-  border-color: #5a7353;
-  color: #e3e8db;
+  border-color: #8a9f88;
+  color: var(--on-scorecard);
   background: transparent;
 }
 
@@ -149,24 +170,29 @@
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding: 4px 3px;
+  padding: 5px;
   scrollbar-width: thin;
   scrollbar-color: #6f876b transparent;
 }
 
 .scoring-main .arrow-slot {
   position: relative;
-  flex: 0 0 62px;
+  flex: 0 0 60px;
+  min-width: 0;
   height: 160px;
   padding: 0;
-  border-color: #5a735345;
-  color: #e3e8db;
-  background: #ffffff03;
+  border-color: #ffffff38;
+  color: var(--on-scorecard);
+  background: #ffffff08;
 }
 
 .scoring-main .arrow-slot[aria-pressed="true"] {
-  border-color: #c9b983;
-  background: #e5dcb510;
+  border-color: var(--accent);
+  background: #e5dcb51c;
+}
+
+.arrow-dock :focus-visible {
+  outline-color: var(--accent);
 }
 
 .arrow-slot-caption {
@@ -178,11 +204,11 @@
   display: flex;
   justify-content: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 
 .arrow-slot-caption span {
-  color: #c0ccb9;
+  color: var(--scorecard-muted);
 }
 
 .dock-arrow-fallback {
@@ -204,21 +230,24 @@
   place-items: center;
   height: 100%;
   padding-bottom: 24px;
-  color: #f5dfaa;
-  font-size: 22px;
+  color: var(--accent);
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .aim-status {
-  min-height: 48px;
-  padding: 13px 0;
   color: var(--ink-muted);
-  font-size: 12px;
-  text-align: center;
+  font-size: 0.8125rem;
 }
 
 .aim-status.is-canceled {
-  color: #d02c3c;
-  font-weight: 700;
+  color: #a42528;
+  font-weight: 650;
+}
+
+[data-theme="dark"] .aim-status.is-canceled {
+  color: #ff9e98;
 }
 
 .aim-reticle {
@@ -270,11 +299,29 @@
 
 .end-tools {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 14px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.end-tools button {
+  flex-shrink: 0;
 }
 
 .setup-target-thumbnail .target-ring-score,
 .setup-target-thumbnail .target-center {
   display: none;
+}
+
+@media (width < 48rem) {
+  .target-preview-panel .target-ring-score {
+    display: none;
+  }
+}
+
+@media (width < 48rem) and (height < 40rem) {
+  .target-input {
+    width: min(100%, max(220px, calc((100svh - 380px) * 1.130435)));
+  }
 }

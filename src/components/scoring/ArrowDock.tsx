@@ -19,15 +19,17 @@ export function ArrowDock({ entries, selected, disabled, onSelect, onRemove }: A
     if (!viewport || !slot) return;
     const bounds = viewport.getBoundingClientRect();
     const rect = slot.getBoundingClientRect();
-    if (rect.left < bounds.left) viewport.scrollLeft += rect.left - bounds.left - 3;
-    else if (rect.right > bounds.right) viewport.scrollLeft += rect.right - bounds.right + 3;
+    if (rect.left < bounds.left + 5) viewport.scrollLeft += rect.left - bounds.left - 5;
+    else if (rect.right > bounds.right - 5) viewport.scrollLeft += rect.right - bounds.right + 5;
   }, [selected]);
 
   return (
     <section className="arrow-dock" data-testid="arrow-dock" aria-label="Panahmu">
       <div className="arrow-dock-label">
-        <span>PANAHMU</span>
-        <span>{entries.filter((entry) => entry.status === "empty").length} tersedia</span>
+        <div>
+          <h2>Daftar panah</h2>
+          <p>{entries.filter((entry) => entry.status === "empty").length} tersedia</p>
+        </div>
         <button
           type="button"
           disabled={disabled || !active || active.status === "empty"}

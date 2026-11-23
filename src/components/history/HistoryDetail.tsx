@@ -3,15 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { db, type Practice } from "@/lib/db";
+import { getPracticeTitle } from "@/lib/practice-title";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { PracticeEnds, PracticeInfo, PracticeResult } from "@/components/PracticeDetails";
 import { StatusCard } from "@/components/StatusCard";
+import { PracticeDate } from "./PracticeDate";
 
 function HistoryBackLink() {
   return (
     <Link
       href="/history"
-      className="inline-flex w-fit items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold
+      className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl px-3 text-sm font-semibold
         text-primary-dark hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-4
         focus-visible:outline-primary dark:text-primary"
     >
@@ -65,7 +67,7 @@ export const HistoryDetail = ({ id }: { id: string }) => {
 
   if (failure) {
     return (
-      <StatusCard icon="📋" title={failure.title} description={failure.description}>
+      <StatusCard title={failure.title} description={failure.description}>
         <HistoryBackLink />
       </StatusCard>
     );
@@ -73,7 +75,7 @@ export const HistoryDetail = ({ id }: { id: string }) => {
 
   if (loading || !practice) {
     return (
-      <main className="mx-auto w-full max-w-3xl p-4 pb-14 sm:p-8">
+      <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
         <HistoryBackLink />
         <div role="status" aria-live="polite">
           <LoadingScreen />
@@ -83,11 +85,21 @@ export const HistoryDetail = ({ id }: { id: string }) => {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 pb-14 sm:p-8 lg:gap-8">
-      <HistoryBackLink />
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-8 sm:py-10">
+      <header>
+        <div className="-mx-3 mb-2">
+          <HistoryBackLink />
+        </div>
+        <h1 className="wrap-anywhere text-3xl font-bold tracking-tight sm:text-4xl">
+          {getPracticeTitle(practice)}
+        </h1>
+        <p className="mt-2 text-sm text-ink-muted">
+          <PracticeDate date={practice.createdAt} />
+        </p>
+      </header>
 
-      <PracticeInfo practice={practice} />
       <PracticeResult practice={practice} heading="h2" />
+      <PracticeInfo practice={practice} />
       <PracticeEnds practice={practice} />
     </main>
   );

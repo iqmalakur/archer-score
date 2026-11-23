@@ -51,12 +51,12 @@ test("invalid explicit legacy snapshot is retained until an explicit discard", a
   await seedDraft(page, invalid);
 
   await expect(page.getByRole("main").getByRole("alert")).toContainText("Draft tidak valid");
-  await expect(page.getByRole("button", { name: "Mulai Scoring" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Mulai latihan" })).toBeDisabled();
   expect(await storedDraft(page)).toEqual(invalid);
 
   await page.getByRole("button", { name: "Buat sesi baru dan buang draft" }).click();
   expect(await storedDraft(page)).toBeNull();
-  await expect(page.getByRole("button", { name: "Mulai Scoring" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Mulai latihan" })).toBeEnabled();
 });
 
 test("snapshot restores the current end and all legacy score rows", async ({ page }) => {
@@ -111,26 +111,26 @@ test("removed arrows require explicit placement rather than automatic misses", a
     .toHaveCount(2);
 });
 
-test("new sessions use Setting and preserve unfinished Setup fields", async ({ page }) => {
+test("new sessions use settings and preserve unfinished setup fields", async ({ page }) => {
   await page.goto("/");
-  const distance = page.getByLabel("Jarak (Meter)");
+  const distance = page.getByLabel("Jarak (meter)");
   for (const invalid of ["", "0", "151", "1.5"]) {
     await distance.fill(invalid);
-    await page.getByRole("button", { name: "Mulai Scoring" }).click();
+    await page.getByRole("button", { name: "Mulai latihan" }).click();
     await expect(page.getByRole("main").getByRole("alert")).toContainText("antara 1 dan 150");
     expect(await storedDraft(page)).toBeNull();
   }
 
   await distance.fill("18");
-  await page.getByLabel("Nama Sesi / Catatan").fill("Latihan sore");
-  await page.getByRole("link", { name: "Ubah target di Setting" }).click();
+  await page.getByLabel("Nama sesi (opsional)").fill("Latihan sore");
+  await page.getByRole("link", { name: "Ubah target" }).click();
   await page.getByRole("button", { name: "Ring 6–10", exact: true }).click();
   await page.getByRole("button", { name: "Simpan target", exact: true }).click();
   await page.getByRole("link", { name: "Kembali ke latihan" }).click();
 
-  await expect(page.getByLabel("Nama Sesi / Catatan")).toHaveValue("Latihan sore");
-  await expect(page.getByLabel("Jarak (Meter)")).toHaveValue("18");
-  await page.getByRole("button", { name: "Mulai Scoring" }).click();
+  await expect(page.getByLabel("Nama sesi (opsional)")).toHaveValue("Latihan sore");
+  await expect(distance).toHaveValue("18");
+  await page.getByRole("button", { name: "Mulai latihan" }).click();
   await expect(page.getByRole("heading", { name: /Rambahan 1 dari/ })).toBeVisible();
   const saved = await storedDraft(page);
   expect(saved.targetSnapshot.rings.map((ring: { score: number }) => ring.score)).toEqual([10, 9, 8, 7, 6]);

@@ -27,10 +27,10 @@ pnpm start
 
 ## Usage
 
-1. Open **Setting** to customize ring count, colors, and scores. Ring scores must be positive integers.
+1. Open **Pengaturan** to customize ring count, colors, and scores. Ring scores must be positive integers.
    The default target has six rings: blue, white, red, yellow, yellow, yellow, from outside inward.
-2. On **Scoring**, enter an optional title and an integer distance of 1–150 meters.
-   Choose 1–20 ends and 1–12 arrows per end, then select **Mulai Scoring**.
+2. On **Latihan**, enter an optional title and an integer distance of 1–150 meters.
+   Choose 1–20 ends and 1–12 arrows per end, then select **Mulai latihan**.
 3. Tap the target to place an arrow, or hold, move, and release for precise aiming with a magnifier.
    Placements outside the circle but inside the box record a Miss with coordinates and add no points.
    Moving outside the box cancels the gesture and shows a red warning.
@@ -42,7 +42,7 @@ pnpm start
    failures display an error and a retry action.
 
 Drafts resume after a refresh. Each new session keeps its own target snapshot.
-Changes in Setting apply to new sessions. Existing sessions and history keep their saved target.
+Changes in **Pengaturan** apply to new sessions. Existing sessions and history keep their saved target.
 Legacy positive scores remain available without invented coordinates. Legacy zeros become empty slots that require review.
 Escape dismisses the resume dialog without deleting the draft; use **Lanjutkan sesi tersimpan** to reopen it.
 

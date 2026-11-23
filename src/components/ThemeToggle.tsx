@@ -71,10 +71,12 @@ export const ThemeToggle = () => {
       type="button"
       onClick={toggle}
       aria-label="Ganti tema terang/gelap"
-      className="relative flex cursor-pointer h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-sm transition-transform duration-150 hover:scale-105 active:scale-95"
+      className="relative flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl
+        border border-line bg-surface text-ink transition-colors hover:bg-surface-muted
+        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
-      <Sun className="h-5 w-5 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100" />
+      <Sun aria-hidden="true" className="size-5 dark:hidden" />
+      <Moon aria-hidden="true" className="hidden size-5 dark:block" />
     </button>
   );
 };

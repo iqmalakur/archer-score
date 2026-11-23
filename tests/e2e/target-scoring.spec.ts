@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { emptyEnds } from "../../src/lib/target-session";
 import { draft, legacyDraft, placeArrow, records, resume, seedDraft, storedDraft, finish } from "./helpers";
 
@@ -8,6 +8,70 @@ async function emptySession(page: Page, arrowCount = 3, endCount = 1) {
   });
   await resume(page);
 }
+
+test.describe("short phone scoring", () => {
+  test.use({ viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true });
+
+  test("session actions stay reachable above the tabs without scrolling", async ({ page }) => {
+    await emptySession(page, 1, 2);
+    const box = page.getByTestId("scoring-box");
+    const next = page.getByRole("button", { name: "Lanjut", exact: true });
+    const back = page.getByRole("button", { name: "Kembali", exact: true });
+    const finish = page.getByRole("button", { name: "Selesai", exact: true });
+    const tabs = page.getByRole("navigation", { name: "Navigasi utama" });
+    const actions = page.locator(".scoring-navigation");
+    const scrollPosition = () => page.evaluate(() => window.scrollY);
+
+    async function tapVisible(control: Locator) {
+      await expect(control).toBeVisible();
+      const bounds = (await control.boundingBox())!;
+      const nav = (await tabs.boundingBox())!;
+      const point = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+
+      expect(bounds.y).toBeGreaterThanOrEqual(0);
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(nav.y);
+      expect(await control.evaluate((element, { x, y }) =>
+        element.contains(document.elementFromPoint(x, y)), point)).toBe(true);
+
+      await page.touchscreen.tap(point.x, point.y);
+    }
+
+    await expect(next).toBeDisabled();
+    await expect.poll(async () => {
+      const board = (await box.boundingBox())!;
+      const bar = (await actions.boundingBox())!;
+      return bar.y - (board.y + board.height);
+    }).toBeGreaterThanOrEqual(4);
+
+    await tapVisible(box);
+    await expect(next).toBeEnabled();
+    await tapVisible(next);
+
+    await expect(page.getByRole("heading", { name: "Rambahan 2 dari 2" })).toBeVisible();
+    await expect(finish).toBeDisabled();
+    await tapVisible(back);
+
+    await expect(page.getByRole("heading", { name: "Rambahan 1 dari 2" })).toBeVisible();
+    await tapVisible(next);
+    await tapVisible(box);
+
+    await expect(finish).toBeEnabled();
+    expect(await scrollPosition()).toBe(0);
+
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(scrollPosition).toBeGreaterThan(0);
+    await tapVisible(page.getByRole("button", { name: "Reset rambahan", exact: true }));
+
+    const reset = page.getByRole("dialog", { name: "Reset rambahan ini?" });
+    await reset.getByRole("button", { name: "Batal", exact: true }).tap();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await tapVisible(finish);
+
+    const save = page.getByRole("dialog", { name: "Selesaikan skoring?" });
+    await save.getByRole("button", { name: "Selesai", exact: true }).tap();
+    await expect(page.getByRole("heading", { name: "Hasil Latihan" })).toBeVisible();
+  });
+});
 
 test("hold shows exact aim feedback; box exit stays canceled; spatial misses survive reload", async ({ page }) => {
   await emptySession(page);
@@ -177,7 +241,7 @@ test("settings changes preserve the active snapshot and recorded miss positions 
   expect(practice.ends).toEqual(session.ends);
   expect(practice.userScores).toEqual([[0, 6]]);
   await restart.click();
-  await expect(page.getByRole("heading", { name: "Scoring Setup" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Siapkan latihan" })).toBeVisible();
   await page.goto(`/history/${practice.id}`);
   await expect(page.locator('[data-arrow-id="1:1"]')).toBeVisible();
   await expect(page.getByText("Pilihan skor target", { exact: true })).toBeVisible();
@@ -273,7 +337,7 @@ test("legacy conversion write failure preserves the original draft and reports b
 
 test("new sessions read newer settings from another tab without overwriting them", async ({ page, context }) => {
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Mulai Scoring" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Mulai latihan" })).toBeEnabled();
   const other = await context.newPage();
   await other.goto("/setting");
   await expect(other.getByRole("button", { name: "Simpan target", exact: true })).toBeEnabled();
@@ -282,7 +346,7 @@ test("new sessions read newer settings from another tab without overwriting them
   await expect(other.getByRole("status")).toContainText("berhasil disimpan");
   await other.close();
 
-  await page.getByRole("button", { name: "Mulai Scoring" }).click();
+  await page.getByRole("button", { name: "Mulai latihan" }).click();
 
   expect((await storedDraft(page)).targetSnapshot.rings[0].score).toBe(25);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("targetSettings")!).rings[0].score)).toBe(25);

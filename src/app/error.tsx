@@ -9,7 +9,6 @@ export default function ErrorPage() {
   return (
     <>
       <StatusCard
-        icon="⚠️"
         title="Terjadi Kesalahan"
         description="Ada yang tidak berjalan sesuai harapan. Coba muat ulang halaman ini."
       >
@@ -17,13 +16,15 @@ export default function ErrorPage() {
           <button
             type="button"
             onClick={retry}
-            className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-transform duration-150 hover:scale-105 active:scale-95"
+            className="min-h-11 cursor-pointer rounded-xl bg-primary px-5 py-3
+              text-sm font-semibold text-on-primary hover:brightness-110"
           >
             Muat Ulang
           </button>
           <Link
             href="/"
-            className="rounded-full border border-line bg-surface px-6 py-2.5 text-sm font-semibold text-ink transition-colors duration-150 hover:bg-surface-muted"
+            className="inline-flex min-h-11 items-center rounded-xl border border-line bg-surface
+              px-5 py-3 text-sm font-semibold text-ink hover:bg-surface-muted"
           >
             Kembali ke Beranda
           </Link>

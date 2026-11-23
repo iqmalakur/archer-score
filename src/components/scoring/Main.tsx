@@ -16,14 +16,22 @@ function SessionScreen({ scoring }: { scoring: Scoring }) {
   const [aiming, setAiming] = useState(false);
   if (!session) return null;
   const entries = session.ends[session.currentEnd - 1];
-  const allComplete = session.ends.every(completeEnd);
+  const currentComplete = completeEnd(entries);
+  const completed = session.ends.filter(completeEnd).length;
+  const allComplete = completed === session.endCount;
+  const isLast = session.currentEnd === session.endCount;
 
   return (
     <section className="scoring-session">
-      <div className="scoring-page-heading">
-        <p className="scoring-eyebrow">LATIHAN {session.distance} METER</p>
+      <header className="session-heading">
+        <p>Latihan · {session.distance} m</p>
         <h1>Rambahan {session.currentEnd} dari {session.endCount}</h1>
-      </div>
+        <progress
+          aria-label="Rambahan lengkap"
+          value={completed}
+          max={session.endCount}
+        />
+      </header>
       <fieldset disabled={scoring.pending}>
         <End
           key={session.currentEnd}
@@ -40,35 +48,36 @@ function SessionScreen({ scoring }: { scoring: Scoring }) {
             },
           })}
         />
+        {isLast && currentComplete && !allComplete && (
+          <p className="scoring-help">
+            Lengkapi rambahan sebelumnya untuk menyimpan latihan.
+          </p>
+        )}
         <div className="scoring-actions scoring-navigation">
           <button
             type="button" disabled={aiming}
             onClick={() => session.currentEnd > 1
               ? commit({ ...session, currentEnd: session.currentEnd - 1 })
               : setDialog({
-                title: "Batalkan rambahan?", type: "danger",
+                title: "Batalkan latihan?", type: "danger",
                 message: "Semua skor pada sesi latihan ini akan dihapus.",
                 confirmText: "Ya, batalkan", cancelText: "Batal",
                 onConfirm: () => { scoring.discard(); scoring.restart(); },
               })}
-          >{session.currentEnd > 1 ? "Kembali" : "Batalkan rambahan"}</button>
+          >{session.currentEnd > 1 ? "Kembali" : "Batalkan latihan"}</button>
           <button
             type="button" className="scoring-primary"
-            disabled={aiming || !completeEnd(entries)
-              || (session.currentEnd === session.endCount && !allComplete)}
-            onClick={() => session.currentEnd < session.endCount
+            disabled={aiming || !currentComplete || (isLast && !allComplete)}
+            onClick={() => !isLast
               ? commit({ ...session, currentEnd: session.currentEnd + 1 })
               : setDialog({
                 title: "Selesaikan skoring?", type: "success",
                 message: "Hasil akhir akan dihitung dan disimpan berdasarkan semua panah yang sudah dicatat.",
                 confirmText: "Selesai", cancelText: "Batal", onConfirm: scoring.finish,
               })}
-          >{session.currentEnd < session.endCount ? "Lanjut" : "Selesai"}</button>
+          >{isLast ? "Selesai" : "Lanjut"}</button>
         </div>
       </fieldset>
-      {!allComplete && <p className="scoring-help">
-        Catat setiap panah sebelum menyelesaikan latihan, termasuk rambahan sebelumnya.
-      </p>}
     </section>
   );
 }
@@ -136,11 +145,9 @@ export function Main() {
         <StorageMessages scoring={scoring} />
         {!scoring.session && (
           <section className="scoring-setup-panel">
-            <div className="scoring-page-heading">
-              <p className="scoring-eyebrow">SIAPKAN LATIHANMU</p>
-              <h1>Scoring Setup</h1>
-              <p>Pasang panah sesuai hasil tembakanmu.</p>
-            </div>
+            <header className="scoring-page-heading">
+              <h1>Siapkan latihan</h1>
+            </header>
             <Setup
               setup={scoring.setup} target={scoring.target}
               disabled={scoring.initial.blocked || scoring.initial.settingsError}

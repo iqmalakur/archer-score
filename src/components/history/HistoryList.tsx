@@ -2,34 +2,98 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { db, Practice } from "@/lib/db";
+import { db, type Practice } from "@/lib/db";
 import { calculateScore } from "@/lib/score";
 import { getPracticeTitle } from "@/lib/practice-title";
-import { Alert, AlertProps } from "@/components/Alert";
+import { Alert } from "@/components/Alert";
 import { StatusCard } from "@/components/StatusCard";
+import { PracticeDate } from "./PracticeDate";
 
-export const HistoryList = () => {
+function HistoryRow({
+  practice,
+  onDelete,
+}: {
+  practice: Practice;
+  onDelete: () => void;
+}) {
+  const title = getPracticeTitle(practice);
+  const { totalScore, maxScore, isPassed } = calculateScore(practice);
+
+  return (
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-stretch">
+      <Link
+        href={`/history/${practice.id}`}
+        aria-label={`Lihat detail ${title}`}
+        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl
+          px-3 py-4 hover:bg-surface-muted sm:gap-5 sm:px-4"
+      >
+        <div className="min-w-0">
+          <p className="line-clamp-2 wrap-anywhere text-sm leading-snug font-bold text-ink sm:text-base">
+            {title}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            <PracticeDate date={practice.createdAt} />
+            {practice.distance !== undefined && ` · ${practice.distance} m`}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            {practice.endCount} rambahan × {practice.arrowCount} panah
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="max-w-[min(35vw,13rem)] text-right leading-tight tabular-nums">
+            <p className="wrap-anywhere text-xs font-medium text-ink-muted">
+              <strong className="text-xl font-bold text-primary sm:text-2xl">{totalScore}</strong>
+              {" / "}{maxScore}
+            </p>
+            <p className={`mt-1 text-xs font-semibold ${isPassed ? "text-primary" : "text-ink-muted"}`}>
+              {isPassed ? "Lulus" : "Coba lagi"}
+            </p>
+          </div>
+          <span aria-hidden="true" className="hidden text-xl text-ink-muted min-[360px]:inline">›</span>
+        </div>
+      </Link>
+
+      <button
+        type="button"
+        aria-label={`Hapus ${title}`}
+        onClick={onDelete}
+        className="mr-1 grid size-11 cursor-pointer place-items-center self-center rounded-xl
+          text-ink-muted hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/40
+          dark:hover:text-red-300 sm:mr-2"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="size-4.5"
+        >
+          <path d="M3 6h18M9 6V3h6v3m4 0-1 14H6L5 6m5 4v6m4-6v6" />
+        </svg>
+      </button>
+    </li>
+  );
+}
+
+export function HistoryList() {
   const [practices, setPractices] = useState<Practice[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const retrying = useRef(false);
+  const heading = useRef<HTMLHeadingElement>(null);
   const deleting = useRef(false);
   const [pending, setPending] = useState(false);
-
-  const defaultAlertState: AlertProps = {
-    show: false,
-    title: "",
-    message: "",
-    type: "danger",
-    confirmText: "Hapus",
-    cancelText: "Batal",
-  };
-
-  const [alertState, setAlertState] = useState<AlertProps>(defaultAlertState);
+  const [deleteError, setDeleteError] = useState(false);
+  const [selected, setSelected] = useState<Practice | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+
     const loadPractices = async () => {
       try {
         const data = await db.getPractices();
@@ -55,267 +119,108 @@ export const HistoryList = () => {
     setLoadError(false);
     setLoading(true);
     setLoadAttempt((prev) => prev + 1);
+    heading.current?.focus();
   };
 
-  const handleDeleteRequest = (practice: Practice) => {
-    if (practice.id === undefined || deleting.current) return;
-    setAlertState({
-      show: true,
-      type: "danger",
-      title: "Hapus riwayat latihan?",
-      message: `Riwayat "${getPracticeTitle(practice)}" akan dihapus secara permanen.`,
-      confirmText: "Ya, Hapus",
-      cancelText: "Batal",
-      onConfirm: async () => {
-        if (practice.id === undefined || deleting.current) return;
-        deleting.current = true;
-        setPending(true);
-        try {
-          await db.removePractice(practice.id);
-          setPractices((prev) => prev.filter((p) => p.id !== practice.id));
-          setAlertState(defaultAlertState);
-        } catch (error) {
-          console.error("Gagal menghapus riwayat:", error);
-          setAlertState((prev) => ({
-            ...prev,
-            message: "Riwayat belum berhasil dihapus. Silakan coba lagi.",
-            confirmText: "Coba lagi",
-          }));
-        } finally {
-          deleting.current = false;
-          setPending(false);
-        }
-      },
-      onCancel: () => {
-        setAlertState(defaultAlertState);
-      },
-    });
-  };
+  const confirmDelete = async () => {
+    const id = selected?.id;
+    if (id === undefined || deleting.current) return;
+    deleting.current = true;
+    setPending(true);
 
-  const formatDate = (dateInput: Date | string) => {
     try {
-      const d = new Date(dateInput);
-      return d.toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return "-";
+      await db.removePractice(id);
+      setPractices((prev) => prev.filter((practice) => practice.id !== id));
+      setSelected(null);
+    } catch (error) {
+      console.error("Gagal menghapus riwayat:", error);
+      setDeleteError(true);
+    } finally {
+      deleting.current = false;
+      setPending(false);
     }
   };
 
-  if (loading) {
-    return (
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 pb-14 sm:p-8 lg:gap-8">
-        <div className="flex flex-col gap-4">
-          <div className="h-7 w-48 animate-pulse rounded-lg bg-surface-muted" />
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="flex h-36 w-full animate-pulse flex-col justify-between rounded-2xl border border-line bg-surface/60 p-5 shadow-sm sm:p-6"
-            >
-              <div className="flex justify-between gap-4">
-                <div className="flex flex-col gap-2">
-                  <div className="h-5 w-40 rounded bg-surface-muted" />
-                  <div className="h-4 w-28 rounded bg-surface-muted" />
-                </div>
-                <div className="h-8 w-8 rounded-full bg-surface-muted" />
-              </div>
-              <div className="flex justify-between items-end gap-2 pt-4">
-                <div className="h-6 w-32 rounded bg-surface-muted" />
-                <div className="h-6 w-20 rounded-full bg-surface-muted" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </main>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <StatusCard
-        icon="⚠️"
-        title="Gagal Memuat Riwayat"
-        description="Penyimpanan browser tidak dapat dibaca. Silakan coba lagi."
-      >
-        <button
-          type="button"
-          onClick={retryLoad}
-          className="rounded-xl bg-primary px-6 py-3 font-semibold text-white"
-        >
-          Coba lagi
-        </button>
-      </StatusCard>
-    );
-  }
-
-  if (practices.length === 0) {
-    return (
-      <StatusCard
-        icon="📭"
-        title="Belum Ada Riwayat"
-        description="Riwayat latihan panahan Anda akan otomatis tersimpan di sini setelah Anda menyelesaikan sesi skoring."
-      >
-        <Link
-          href="/"
-          className="rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-lg shadow-primary/30 transition-all hover:brightness-110 active:scale-[0.97]"
-        >
-          Mulai Skoring Baru
-        </Link>
-      </StatusCard>
-    );
-  }
+  const selectedTitle = selected ? getPracticeTitle(selected) : "";
 
   return (
-    <>
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 pb-14 sm:p-8 lg:gap-8">
-        <section className="flex flex-col gap-5">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-xl font-bold text-ink sm:text-2xl">
-              <span aria-hidden className="text-primary">
-                📜
-              </span>
-              Riwayat Latihan
-            </h2>
-            <span className="rounded-full border border-line bg-surface-muted px-3 py-1 text-xs font-semibold text-ink-muted">
-              {practices.length} {practices.length === 1 ? "Sesi" : "Sesi"}
-            </span>
-          </div>
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-8 sm:py-10">
+      <header>
+        <h1 ref={heading} tabIndex={-1} className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Riwayat Latihan
+        </h1>
+        {!loading && !loadError && practices.length > 0 && (
+          <p className="mt-2 text-sm text-ink-muted">{practices.length} sesi tersimpan</p>
+        )}
+      </header>
 
-          <div className="flex flex-col gap-4">
-            {practices.map((practice, index) => {
-              const { totalScore, maxScore, percentage, isPassed } =
-                calculateScore(practice);
-
-              const formattedDate = formatDate(practice.createdAt);
-              const title = getPracticeTitle(practice);
-
-              const scoreColorClass =
-                percentage < 40
-                  ? "text-red-500"
-                  : percentage < 80
-                    ? "text-amber-500 dark:text-amber-400"
-                    : "text-emerald-500 dark:text-emerald-400";
-
-              return (
-                <article
-                  key={practice.id ?? index}
-                  className="animate-[fadeInUp_0.4s_ease-out_both] group relative flex flex-col justify-between rounded-2xl border border-line bg-surface/75 p-5 shadow-md backdrop-blur-xl transition-all duration-200 hover:border-primary/40 hover:shadow-lg sm:p-6"
-                  style={{ animationDelay: `${Math.min(index * 0.05, 0.4)}s` }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-col gap-1 pr-8 sm:pr-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-bold text-ink sm:text-lg">
-                          <Link
-                            href={`/history/${practice.id}`}
-                            aria-label={`Lihat detail ${title}`}
-                            className="wrap-anywhere after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-4 focus-visible:after:outline-primary"
-                          >
-                            {title}
-                          </Link>
-                        </h3>
-                        {practice.distance !== undefined && (
-                          <span className="inline-flex items-center rounded-md border border-line bg-surface-muted px-2 py-0.5 text-xs font-medium text-ink-muted">
-                            🎯 {practice.distance}m
-                          </span>
-                        )}
-                      </div>
-                      <time
-                        dateTime={new Date(practice.createdAt).toISOString()}
-                        className="text-xs font-medium text-ink-muted"
-                      >
-                        📅 {formattedDate}
-                      </time>
-                    </div>
-
-                    <button
-                      type="button"
-                      aria-label={`Hapus ${title}`}
-                      onClick={() => handleDeleteRequest(practice)}
-                      className="relative z-10 cursor-pointer rounded-xl p-2 text-ink-muted/60 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.8}
-                        stroke="currentColor"
-                        className="h-5 w-5"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-line/60 pt-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-xs font-medium text-ink-muted">
-                        {practice.endCount} Rambahan × {practice.arrowCount}{" "}
-                        Panah
-                      </span>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-xl font-extrabold text-ink sm:text-2xl">
-                          {totalScore}
-                        </span>
-                        <span className="text-xs font-semibold text-ink-muted">
-                          / {maxScore} pts
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-sm font-extrabold sm:text-base ${scoreColorClass}`}
-                      >
-                        {percentage.toFixed(1)}%
-                      </span>
-
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
-                          isPassed
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
-                            : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"
-                        }`}
-                      >
-                        <span>{isPassed ? "✓" : "✕"}</span>
-                        {isPassed ? "Lulus" : "Coba lagi"}
-                      </span>
-                    </div>
-                  </div>
-                  <span aria-hidden className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-dark dark:text-primary">
-                    Lihat detail <span>→</span>
-                  </span>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      </main>
+      {loading ? (
+        <div role="status" className="grid gap-3">
+          <span className="sr-only">Memuat riwayat latihan</span>
+          {[0, 1, 2].map((index) => (
+            <div key={index} aria-hidden="true" className="h-19 animate-pulse rounded-2xl bg-surface-muted" />
+          ))}
+        </div>
+      ) : loadError ? (
+        <StatusCard
+          inset
+          title="Gagal Memuat Riwayat"
+          description="Penyimpanan browser tidak dapat dibaca. Silakan coba lagi."
+        >
+          <button
+            type="button"
+            onClick={retryLoad}
+            className="min-h-11 cursor-pointer rounded-xl bg-primary px-5 py-3
+              text-sm font-semibold text-on-primary hover:brightness-110"
+          >
+            Coba lagi
+          </button>
+        </StatusCard>
+      ) : practices.length === 0 ? (
+        <StatusCard
+          inset
+          title="Belum Ada Riwayat"
+          description="Skor dari latihan yang selesai akan tersimpan di sini."
+        >
+          <Link
+            href="/"
+            className="inline-flex min-h-11 items-center rounded-xl bg-primary px-5 py-3
+              text-sm font-semibold text-on-primary hover:brightness-110"
+          >
+            Mulai latihan
+          </Link>
+        </StatusCard>
+      ) : (
+        <ul role="list" className="divide-y divide-line rounded-2xl border border-line bg-surface p-1">
+          {practices.map((practice, index) => (
+            <HistoryRow
+              key={practice.id ?? index}
+              practice={practice}
+              onDelete={() => {
+                if (practice.id === undefined || deleting.current) return;
+                setDeleteError(false);
+                setSelected(practice);
+              }}
+            />
+          ))}
+        </ul>
+      )}
 
       <Alert
-        show={alertState.show}
-        title={alertState.title}
-        message={alertState.message}
-        type={alertState.type}
-        confirmText={alertState.confirmText}
-        cancelText={alertState.cancelText}
+        show={selected !== null}
+        title="Hapus riwayat latihan?"
+        message={deleteError
+          ? "Riwayat belum berhasil dihapus. Silakan coba lagi."
+          : `Riwayat "${selectedTitle}" akan dihapus secara permanen.`}
+        type="danger"
+        confirmText={deleteError ? "Coba lagi" : "Ya, Hapus"}
         pending={pending}
+        fallbackFocusRef={heading}
         onCancel={() => {
-          if (deleting.current) return;
-          alertState.onCancel?.();
-          setAlertState(defaultAlertState);
+          if (!deleting.current) setSelected(null);
         }}
-        onConfirm={alertState.onConfirm}
+        onConfirm={confirmDelete}
       />
-    </>
+    </main>
   );
-};
+}

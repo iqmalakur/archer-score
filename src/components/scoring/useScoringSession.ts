@@ -105,7 +105,7 @@ export function useScoringSession() {
     try { settings = prepareTargetSettings(localStorage, target); }
     catch (error) {
       if (error instanceof DOMException) settings = { target, saved: false };
-      else { setMessage("Target tersimpan tidak valid. Periksa dan simpan ulang melalui Setting."); return; }
+      else { setMessage("Target tersimpan tidak valid. Periksa dan simpan ulang melalui Pengaturan."); return; }
     }
     completed.current = false;
     setResult(null);
@@ -116,7 +116,7 @@ export function useScoringSession() {
       targetSnapshot: structuredClone(settings.target), ends: emptyEnds(setup),
     });
     if (!settings.saved) setMessage((previous) => previous
-      + " Setting target tidak tersedia; sesi ini memakai konfigurasi terakhir yang ditampilkan.");
+      + " Pengaturan target tidak tersedia. Sesi ini memakai konfigurasi terakhir yang ditampilkan.");
   };
   const updateEnd = (entries: ArrowEntry[]) => {
     const current = latest.current;
@@ -147,7 +147,7 @@ export function useScoringSession() {
       setSession(null);
       setResult(null);
       try { setTarget(readTargetSettings(localStorage)); }
-      catch { setMessage("Target tidak dapat dibaca. Periksa dan simpan ulang melalui Setting."); }
+      catch { setMessage("Target tidak dapat dibaca. Periksa dan simpan ulang melalui Pengaturan."); }
     },
   };
 }
