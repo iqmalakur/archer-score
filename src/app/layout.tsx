@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
+import SwRegister from "./sw-register";
 
 const inter = localFont({
   src: "./fonts/Inter-Latin-Variable.woff2",
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col transition-colors duration-300">
         <Header />
         {children}
+        <SwRegister />
       </body>
     </html>
   );
