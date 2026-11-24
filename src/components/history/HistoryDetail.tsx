@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { db, type Practice } from "@/lib/db";
 import { getPracticeTitle } from "@/lib/practice-title";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -9,33 +8,31 @@ import { PracticeEnds, PracticeInfo, PracticeResult } from "@/components/Practic
 import { StatusCard } from "@/components/StatusCard";
 import { PracticeDate } from "./PracticeDate";
 
-function HistoryBackLink() {
+function HistoryBackLink({ onClick }: { onClick: () => void }) {
   return (
-    <Link
-      href="/history"
+    <button
+      type="button"
+      onClick={onClick}
       className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl px-3 text-sm font-semibold
         text-primary-dark hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-4
-        focus-visible:outline-primary dark:text-primary"
+        focus-visible:outline-primary dark:text-primary cursor-pointer"
     >
       <span aria-hidden>←</span> Kembali ke Riwayat
-    </Link>
+    </button>
   );
 }
 
-export const HistoryDetail = ({ id }: { id: string }) => {
-  const practiceId = Number(id);
-  const isValidId = /^\d+$/.test(id) && Number.isSafeInteger(practiceId) && practiceId > 0;
+export const HistoryDetail = ({ id, onBack }: { id: number, onBack: () => void }) => {
   const [practice, setPractice] = useState<Practice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!isValidId) return;
     let cancelled = false;
 
     const loadPractice = async () => {
       try {
-        const data = await db.getPractice(practiceId);
+        const data = await db.getPractice(id);
         if (!cancelled) setPractice(data ?? null);
       } catch (error) {
         console.error("Gagal memuat detail riwayat latihan:", error);
@@ -49,9 +46,9 @@ export const HistoryDetail = ({ id }: { id: string }) => {
     return () => {
       cancelled = true;
     };
-  }, [isValidId, practiceId]);
+  }, [id]);
 
-  const failure = !isValidId
+  const failure = !id
     ? { title: "ID Riwayat Tidak Valid", description: "ID riwayat harus berupa bilangan bulat positif yang valid." }
     : error
       ? {
@@ -68,7 +65,7 @@ export const HistoryDetail = ({ id }: { id: string }) => {
   if (failure) {
     return (
       <StatusCard title={failure.title} description={failure.description}>
-        <HistoryBackLink />
+        <HistoryBackLink onClick={onBack} />
       </StatusCard>
     );
   }
@@ -76,7 +73,7 @@ export const HistoryDetail = ({ id }: { id: string }) => {
   if (loading || !practice) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
-        <HistoryBackLink />
+        <HistoryBackLink onClick={onBack} />
         <div role="status" aria-live="polite">
           <LoadingScreen />
         </div>
@@ -88,7 +85,7 @@ export const HistoryDetail = ({ id }: { id: string }) => {
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-8 sm:py-10">
       <header>
         <div className="-mx-3 mb-2">
-          <HistoryBackLink />
+          <HistoryBackLink onClick={onBack} />
         </div>
         <h1 className="wrap-anywhere text-3xl font-bold tracking-tight sm:text-4xl">
           {getPracticeTitle(practice)}

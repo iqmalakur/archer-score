@@ -8,12 +8,15 @@ import { getPracticeTitle } from "@/lib/practice-title";
 import { Alert } from "@/components/Alert";
 import { StatusCard } from "@/components/StatusCard";
 import { PracticeDate } from "./PracticeDate";
+import { HistoryDetail } from "./HistoryDetail";
 
 function HistoryRow({
   practice,
+  onClick,
   onDelete,
 }: {
   practice: Practice;
+  onClick: () => void;
   onDelete: () => void;
 }) {
   const title = getPracticeTitle(practice);
@@ -21,13 +24,14 @@ function HistoryRow({
 
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] items-stretch">
-      <Link
-        href={`/history/${practice.id}`}
+      <button
+        type="button"
+        onClick={onClick}
         aria-label={`Lihat detail ${title}`}
         className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl
-          px-3 py-4 hover:bg-surface-muted sm:gap-5 sm:px-4"
+          cursor-pointer px-3 py-4 hover:bg-surface-muted sm:gap-5 sm:px-4"
       >
-        <div className="min-w-0">
+        <div className="min-w-0 text-start">
           <p className="line-clamp-2 wrap-anywhere text-sm leading-snug font-bold text-ink sm:text-base">
             {title}
           </p>
@@ -52,7 +56,7 @@ function HistoryRow({
           </div>
           <span aria-hidden="true" className="hidden text-xl text-ink-muted min-[360px]:inline">›</span>
         </div>
-      </Link>
+      </button>
 
       <button
         type="button"
@@ -90,6 +94,7 @@ export function HistoryList() {
   const [pending, setPending] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
   const [selected, setSelected] = useState<Practice | null>(null);
+  const [detail, setDetail] = useState<Practice | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,6 +117,10 @@ export function HistoryList() {
     loadPractices();
     return () => { cancelled = true; };
   }, [loadAttempt]);
+
+  if (detail?.id) {
+    return <HistoryDetail id={detail.id} onBack={() => setDetail(null)}  />;
+  }
 
   const retryLoad = () => {
     if (retrying.current) return;
@@ -196,6 +205,7 @@ export function HistoryList() {
             <HistoryRow
               key={practice.id ?? index}
               practice={practice}
+              onClick={() => setDetail(practice)}
               onDelete={() => {
                 if (practice.id === undefined || deleting.current) return;
                 setDeleteError(false);
