@@ -9,6 +9,7 @@ import { Alert } from "@/components/Alert";
 import { StatusCard } from "@/components/StatusCard";
 import { PracticeDate } from "./PracticeDate";
 import { HistoryDetail } from "./HistoryDetail";
+import { useSearchParams } from "next/navigation";
 
 function HistoryRow({
   practice,
@@ -84,6 +85,9 @@ function HistoryRow({
 }
 
 export function HistoryList() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
+
   const [practices, setPractices] = useState<Practice[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -94,7 +98,6 @@ export function HistoryList() {
   const [pending, setPending] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
   const [selected, setSelected] = useState<Practice | null>(null);
-  const [detail, setDetail] = useState<Practice | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,8 +121,8 @@ export function HistoryList() {
     return () => { cancelled = true; };
   }, [loadAttempt]);
 
-  if (detail?.id) {
-    return <HistoryDetail id={detail.id} onBack={() => setDetail(null)}  />;
+  if (id) {
+    return <HistoryDetail id={id}  />;
   }
 
   const retryLoad = () => {
@@ -205,7 +208,11 @@ export function HistoryList() {
             <HistoryRow
               key={practice.id ?? index}
               practice={practice}
-              onClick={() => setDetail(practice)}
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.set('id', `${practice.id}`);
+                window.history.pushState({ fromHistory: true }, '', `?${params.toString()}`)
+              }}
               onDelete={() => {
                 if (practice.id === undefined || deleting.current) return;
                 setDeleteError(false);

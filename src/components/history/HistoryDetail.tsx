@@ -8,11 +8,17 @@ import { PracticeEnds, PracticeInfo, PracticeResult } from "@/components/Practic
 import { StatusCard } from "@/components/StatusCard";
 import { PracticeDate } from "./PracticeDate";
 
-function HistoryBackLink({ onClick }: { onClick: () => void }) {
+function HistoryBackLink() {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        if (window.history.state?.fromHistory) {
+          window.history.back();
+        } else {
+          window.history.replaceState(null, '', '/history');
+        }
+      }}
       className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl px-3 text-sm font-semibold
         text-primary-dark hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-4
         focus-visible:outline-primary dark:text-primary cursor-pointer"
@@ -22,17 +28,20 @@ function HistoryBackLink({ onClick }: { onClick: () => void }) {
   );
 }
 
-export const HistoryDetail = ({ id, onBack }: { id: number, onBack: () => void }) => {
+export const HistoryDetail = ({ id }: { id: string }) => {
+  const practiceId = Number(id);
+  const isValidId = /^\d+$/.test(id) && Number.isSafeInteger(practiceId) && practiceId > 0;
   const [practice, setPractice] = useState<Practice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    if (!isValidId) return;
     let cancelled = false;
 
     const loadPractice = async () => {
       try {
-        const data = await db.getPractice(id);
+        const data = await db.getPractice(practiceId);
         if (!cancelled) setPractice(data ?? null);
       } catch (error) {
         console.error("Gagal memuat detail riwayat latihan:", error);
@@ -46,9 +55,9 @@ export const HistoryDetail = ({ id, onBack }: { id: number, onBack: () => void }
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [isValidId, practiceId]);
 
-  const failure = !id
+  const failure = !isValidId
     ? { title: "ID Riwayat Tidak Valid", description: "ID riwayat harus berupa bilangan bulat positif yang valid." }
     : error
       ? {
@@ -65,7 +74,7 @@ export const HistoryDetail = ({ id, onBack }: { id: number, onBack: () => void }
   if (failure) {
     return (
       <StatusCard title={failure.title} description={failure.description}>
-        <HistoryBackLink onClick={onBack} />
+        <HistoryBackLink />
       </StatusCard>
     );
   }
@@ -73,7 +82,7 @@ export const HistoryDetail = ({ id, onBack }: { id: number, onBack: () => void }
   if (loading || !practice) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
-        <HistoryBackLink onClick={onBack} />
+        <HistoryBackLink />
         <div role="status" aria-live="polite">
           <LoadingScreen />
         </div>
@@ -85,7 +94,7 @@ export const HistoryDetail = ({ id, onBack }: { id: number, onBack: () => void }
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-8 sm:py-10">
       <header>
         <div className="-mx-3 mb-2">
-          <HistoryBackLink onClick={onBack} />
+          <HistoryBackLink />
         </div>
         <h1 className="wrap-anywhere text-3xl font-bold tracking-tight sm:text-4xl">
           {getPracticeTitle(practice)}
