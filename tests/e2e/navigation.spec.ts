@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { draft, finish, resume, seedDraft, storedDraft } from "./helpers";
+import { draft, finish, records, resume, seedDraft, storedDraft } from "./helpers";
 
 function mainNavigation(page: Page) {
   return page.getByRole("navigation", { name: "Navigasi utama" });
@@ -149,4 +149,79 @@ test("direct history detail validates query changes and returns to the list", as
 
   await page.goBack();
   await expect(page).toHaveURL("/setting");
+});
+
+test("browser Back exits the result and keeps the saved practice", async ({ page }) => {
+  await seedDraft(page);
+  await resume(page);
+  await finish(page);
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
+  const saved = await records(page);
+
+  await page.goBack();
+
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("heading", { name: "Siapkan latihan" })).toBeVisible();
+  expect(saved.practices).toHaveLength(1);
+  expect(saved.receipts).toHaveLength(1);
+  expect(await records(page)).toEqual(saved);
+  expect(await storedDraft(page)).toBeNull();
+
+  await page.goBack();
+  await expect(page).toHaveURL("/setting");
+});
+
+test("browser Back moves through new ends and preserves scores after a draft write fails", async ({ page }) => {
+  await page.goto("/");
+  const fewerArrows = page.getByRole("button", { name: "Kurangi panah" });
+  for (let count = 0; count < 4; count++) await fewerArrows.click();
+  await page.getByRole("button", { name: "Mulai latihan" }).click();
+
+  const board = page.getByTestId("scoring-box");
+  const next = page.getByRole("button", { name: "Lanjut", exact: true });
+  for (let end = 1; end <= 2; end++) {
+    await expect(page.getByRole("heading", { name: `Rambahan ${end} dari 4` })).toBeVisible();
+    await board.press("Enter");
+    await next.click();
+  }
+  const saved = await storedDraft(page);
+
+  await page.goBack();
+
+  await expect(page.getByRole("heading", { name: "Rambahan 2 dari 4" })).toBeVisible();
+  expect(await storedDraft(page)).toEqual({ ...saved, currentEnd: 2 });
+
+  await page.evaluate(() => {
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "endSession") {
+        Storage.prototype.setItem = setItem;
+        throw new DOMException("Synthetic draft write failure", "QuotaExceededError");
+      }
+
+      setItem.call(this, key, value);
+    };
+  });
+  await page.goBack();
+
+  await expect(page.getByRole("heading", { name: "Rambahan 1 dari 4" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("Gagal menyimpan draft");
+  await expect(page.getByRole("button", { name: /^Panah 1, Skor / })).toBeVisible();
+  expect(await storedDraft(page)).toEqual({ ...saved, currentEnd: 2 });
+  await page.getByRole("button", { name: "Coba simpan draft lagi" }).click();
+  expect(await storedDraft(page)).toEqual({ ...saved, currentEnd: 1 });
+});
+
+test("browser Back moves to the previous end of a resumed draft", async ({ page }) => {
+  const secondEnd = draft.ends[0].map((entry, index) => ({ ...entry, id: `2:${index + 1}` }));
+  const saved = { ...draft, endCount: 2, currentEnd: 2, ends: [...draft.ends, secondEnd] };
+  await seedDraft(page, saved);
+  await page.getByRole("dialog").getByRole("button", { name: "Lanjutkan", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Rambahan 2 dari 2" })).toBeVisible();
+
+  await page.goBack();
+
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("heading", { name: "Rambahan 1 dari 2" })).toBeVisible();
+  expect(await storedDraft(page)).toEqual({ ...saved, currentEnd: 1 });
 });

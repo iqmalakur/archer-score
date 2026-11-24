@@ -8,7 +8,12 @@ import { createTarget, prepareTargetSettings, readTargetSettings } from "@/lib/t
 import { completeEnd, emptyEnds, isValidSetupDraft, scoreProjection } from "@/lib/target-session";
 import { DEFAULT_SETUP, loadScoringState, saveScoringDraft, STORAGE_WARNING } from "@/lib/scoring-storage";
 
-type Dialog = Omit<AlertProps, "show"> | null;
+type Dialog = (Omit<AlertProps, "show"> & { failureMessage?: string }) | null;
+
+function removeScoringDraft() {
+  try { localStorage.removeItem("endSession"); return true; }
+  catch { return false; }
+}
 
 function useScoringDialog() {
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -24,7 +29,8 @@ function useScoringDialog() {
     } catch {
       setDialog((previous) => ({
         ...previous, type: "danger", title: previous?.title ?? "Gagal menyimpan latihan",
-        message: "Gagal menyimpan latihan. Skor tetap tersedia di halaman ini. Silakan coba lagi.",
+        message: previous?.failureMessage
+          ?? "Gagal menyimpan latihan. Skor tetap tersedia di halaman ini. Silakan coba lagi.",
         confirmText: "Coba lagi",
       }));
     } finally { busy.current = false; setPending(false); }
@@ -46,14 +52,12 @@ export function useScoringSession() {
   const latest = useRef<TargetSession | null>(null);
   const completed = useRef(false);
 
-  const clearDraft = () => {
-    try { localStorage.removeItem("endSession"); setCleanupFailed(false); }
-    catch { setCleanupFailed(true); }
-  };
+  const clearDraft = () => setCleanupFailed(!removeScoringDraft());
   const discard = () => {
-    try { localStorage.removeItem("endSession"); setMessage(""); }
-    catch { setMessage(STORAGE_WARNING); }
+    const removed = removeScoringDraft();
+    setMessage(removed ? "" : STORAGE_WARNING);
     setInitial((previous) => previous ? { ...previous, blocked: false, session: null } : previous);
+    return removed;
   };
   const commit = (next: TargetSession) => {
     if (completed.current) return false;
@@ -140,6 +144,10 @@ export function useScoringSession() {
   return {
     ...dialogs, initial, setup, target, session, result, message, cleanupFailed,
     editSetup, start, commit, updateEnd, finish, clearDraft, discard,
+    previousEnd: () => {
+      const current = latest.current;
+      if (current && current.currentEnd > 1) commit({ ...current, currentEnd: current.currentEnd - 1 });
+    },
     retrySave: () => { if (latest.current) commit(latest.current); },
     resumeStored: () => { if (initial?.session) resume(initial.session, initial.converted); },
     restart: () => {

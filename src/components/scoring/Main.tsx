@@ -7,13 +7,23 @@ import { PracticeEnds, PracticeResult } from "@/components/PracticeDetails";
 import { completeEnd } from "@/lib/target-session";
 import { Setup } from "./Setup";
 import { End } from "./End";
+import { useScoringBack } from "./useScoringBack";
 import { useScoringSession } from "./useScoringSession";
 
 type Scoring = ReturnType<typeof useScoringSession>;
 
-function SessionScreen({ scoring }: { scoring: Scoring }) {
+function SessionScreen({
+  scoring,
+  aiming,
+  setAiming,
+  onBack,
+}: {
+  scoring: Scoring;
+  aiming: boolean;
+  setAiming: (busy: boolean) => void;
+  onBack: () => void;
+}) {
   const { session, commit, updateEnd, setDialog } = scoring;
-  const [aiming, setAiming] = useState(false);
   if (!session) return null;
   const entries = session.ends[session.currentEnd - 1];
   const currentComplete = completeEnd(entries);
@@ -55,15 +65,7 @@ function SessionScreen({ scoring }: { scoring: Scoring }) {
         )}
         <div className="scoring-actions scoring-navigation">
           <button
-            type="button" disabled={aiming}
-            onClick={() => session.currentEnd > 1
-              ? commit({ ...session, currentEnd: session.currentEnd - 1 })
-              : setDialog({
-                title: "Batalkan latihan?", type: "danger",
-                message: "Semua skor pada sesi latihan ini akan dihapus.",
-                confirmText: "Ya, batalkan", cancelText: "Batal",
-                onConfirm: () => { scoring.discard(); scoring.restart(); },
-              })}
+            type="button" disabled={aiming} onClick={onBack}
           >{session.currentEnd > 1 ? "Kembali" : "Batalkan latihan"}</button>
           <button
             type="button" className="scoring-primary"
@@ -122,8 +124,46 @@ function StorageMessages({ scoring }: { scoring: Scoring }) {
 
 export function Main() {
   const scoring = useScoringSession();
-  const { result, dialog } = scoring;
+  const { session, result, dialog, initial } = scoring;
   const main = useRef<HTMLElement>(null);
+  const [aiming, setAiming] = useState(false);
+
+  const goBack = () => {
+    if (scoring.pending || aiming) return true;
+    if (dialog) {
+      scoring.closeDialog();
+      return true;
+    }
+
+    if (result) {
+      scoring.restart();
+      return false;
+    }
+
+    if (!session) return false;
+    if (session.currentEnd > 1) {
+      scoring.previousEnd();
+    } else {
+      scoring.setDialog({
+        title: "Batalkan latihan?", type: "danger",
+        message: "Semua skor pada sesi latihan ini akan dihapus.",
+        confirmText: "Ya, batalkan", cancelText: "Batal",
+        failureMessage: "Gagal menghapus draf. Skor tetap tersedia di halaman ini. Silakan coba lagi.",
+        onConfirm: () => {
+          if (!scoring.discard()) throw new Error("Could not discard the scoring draft.");
+          scoring.restart();
+        },
+      });
+    }
+    return true;
+  };
+
+  useScoringBack(
+    Boolean(initial),
+    session?.sessionId,
+    initial?.blocked ? initial.session?.sessionId : undefined,
+    goBack,
+  );
 
   useEffect(() => {
     if (result && !dialog) {
@@ -155,7 +195,9 @@ export function Main() {
             />
           </section>
         )}
-        {scoring.session && !result && <SessionScreen scoring={scoring} />}
+        {session && !result && (
+          <SessionScreen scoring={scoring} aiming={aiming} setAiming={setAiming} onBack={goBack} />
+        )}
         {result && (
           <>
             <PracticeResult practice={result} heading="h1" />

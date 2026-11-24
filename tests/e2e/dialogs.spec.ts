@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { draft, finish, holdWrites, resume, seedDraft, storedDraft } from "./helpers";
+import { draft, fault, finish, holdWrites, installFaults, resume, seedDraft, storedDraft } from "./helpers";
 
 test("resume Escape preserves the draft and can reopen the dialog", async ({ page }) => {
   await seedDraft(page);
@@ -38,7 +38,7 @@ test("confirmation contains keyboard focus and restores its trigger", async ({ p
   expect(await storedDraft(page)).not.toBeNull();
 });
 
-test("pending save disables actions and prevents Escape", async ({ page }) => {
+test("pending save disables actions and prevents Escape and Back", async ({ page }) => {
   await seedDraft(page);
   await resume(page);
   // A real conflicting transaction holds completion pending until released.
@@ -51,8 +51,49 @@ test("pending save disables actions and prevents Escape", async ({ page }) => {
   await expect(dialog.getByRole("button", { name: "Batal" })).toBeDisabled();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL("/");
+  await expect(dialog).toHaveAttribute("aria-busy", "true");
   await release();
   await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Siapkan latihan" })).toBeVisible();
+});
+
+test("Back on the first end confirms cancellation and keeps the draft if removal fails", async ({ page }) => {
+  await installFaults(page);
+  await seedDraft(page);
+  await resume(page);
+  const dialog = page.getByRole("dialog", { name: "Batalkan latihan?" });
+
+  await page.goBack();
+  await expect(dialog).toBeVisible();
+  expect(await storedDraft(page)).toEqual(draft);
+
+  await page.goBack();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Rambahan 1 dari 1" })).toBeVisible();
+  expect(await storedDraft(page)).toEqual(draft);
+
+  await page.goBack();
+  await fault(page, "cleanup");
+  await dialog.getByRole("button", { name: "Ya, batalkan" }).click();
+
+  await expect(dialog).toContainText("Gagal menghapus draf");
+  expect(await storedDraft(page)).toEqual(draft);
+
+  await fault(page);
+  await dialog.getByRole("button", { name: "Coba lagi" }).click();
+  const setup = page.getByRole("heading", { name: "Siapkan latihan" });
+  await expect(setup).toBeVisible();
+  expect(await storedDraft(page)).toBeNull();
+
+  await page.goForward();
+  await expect(setup).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.waitForFunction(() => !history.state?.scoringBack?.active);
+  await page.goBack();
+  await expect(page).toHaveURL("/setting");
 });
 
 test("pending deletion blocks Escape until the transaction completes", async ({ page }) => {
