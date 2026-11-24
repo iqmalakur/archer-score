@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { db, type Practice } from "@/lib/db";
 import { calculateScore } from "@/lib/score";
 import { getPracticeTitle } from "@/lib/practice-title";
@@ -9,15 +10,16 @@ import { Alert } from "@/components/Alert";
 import { StatusCard } from "@/components/StatusCard";
 import { PracticeDate } from "./PracticeDate";
 import { HistoryDetail } from "./HistoryDetail";
-import { useSearchParams } from "next/navigation";
 
 function HistoryRow({
   practice,
-  onClick,
+  href,
+  onOpen,
   onDelete,
 }: {
   practice: Practice;
-  onClick: () => void;
+  href: string;
+  onOpen: () => void;
   onDelete: () => void;
 }) {
   const title = getPracticeTitle(practice);
@@ -25,12 +27,18 @@ function HistoryRow({
 
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] items-stretch">
-      <button
-        type="button"
-        onClick={onClick}
+      <Link
+        id={`history-practice-${practice.id}`}
+        href={href}
+        prefetch={false}
+        onNavigate={(event) => {
+          event.preventDefault();
+          onOpen();
+        }}
         aria-label={`Lihat detail ${title}`}
         className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl
-          cursor-pointer px-3 py-4 hover:bg-surface-muted sm:gap-5 sm:px-4"
+          px-3 py-4 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-primary
+          sm:gap-5 sm:px-4"
       >
         <div className="min-w-0 text-start">
           <p className="line-clamp-2 wrap-anywhere text-sm leading-snug font-bold text-ink sm:text-base">
@@ -57,7 +65,7 @@ function HistoryRow({
           </div>
           <span aria-hidden="true" className="hidden text-xl text-ink-muted min-[360px]:inline">›</span>
         </div>
-      </button>
+      </Link>
 
       <button
         type="button"
@@ -84,10 +92,134 @@ function HistoryRow({
   );
 }
 
-export function HistoryList() {
-  const searchParams = useSearchParams();
-  const id = searchParams.get('id');
+function HistoryListContent({
+  practices,
+  loading,
+  loadError,
+  retryLoad,
+  detailHref,
+  openDetail,
+  selectForDeletion,
+}: {
+  practices: Practice[];
+  loading: boolean;
+  loadError: boolean;
+  retryLoad: () => void;
+  detailHref: (id: Practice["id"]) => string;
+  openDetail: (href: string, id: Practice["id"]) => void;
+  selectForDeletion: (practice: Practice) => void;
+}) {
+  if (loading) {
+    return (
+      <div role="status" className="grid gap-3">
+        <span className="sr-only">Memuat riwayat latihan</span>
+        {[0, 1, 2].map((index) => (
+          <div key={index} aria-hidden="true" className="h-19 animate-pulse rounded-2xl bg-surface-muted" />
+        ))}
+      </div>
+    );
+  }
 
+  if (loadError) {
+    return (
+      <StatusCard
+        inset
+        title="Gagal Memuat Riwayat"
+        description="Penyimpanan browser tidak dapat dibaca. Silakan coba lagi."
+      >
+        <button
+          type="button"
+          onClick={retryLoad}
+          className="min-h-11 cursor-pointer rounded-xl bg-primary px-5 py-3
+            text-sm font-semibold text-on-primary hover:brightness-110"
+        >
+          Coba lagi
+        </button>
+      </StatusCard>
+    );
+  }
+
+  if (practices.length === 0) {
+    return (
+      <StatusCard
+        inset
+        title="Belum Ada Riwayat"
+        description="Skor dari latihan yang selesai akan tersimpan di sini."
+      >
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center rounded-xl bg-primary px-5 py-3
+            text-sm font-semibold text-on-primary hover:brightness-110"
+        >
+          Mulai latihan
+        </Link>
+      </StatusCard>
+    );
+  }
+
+  return (
+    <ul role="list" className="divide-y divide-line rounded-2xl border border-line bg-surface p-1">
+      {practices.map((practice, index) => {
+        const href = detailHref(practice.id);
+
+        return (
+          <HistoryRow
+            key={practice.id ?? index}
+            practice={practice}
+            href={href}
+            onOpen={() => openDetail(href, practice.id)}
+            onDelete={() => selectForDeletion(practice)}
+          />
+        );
+      })}
+    </ul>
+  );
+}
+
+function useHistoryNavigation(loading: boolean) {
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
+  const returnFocus = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (id !== null) {
+      if (window.history.state?.fromHistory) returnFocus.current = `history-practice-${id}`;
+      return;
+    }
+
+    if (loading || !returnFocus.current) return;
+    const row = document.getElementById(returnFocus.current);
+    returnFocus.current = null;
+    (row ?? document.getElementById("history-heading"))?.focus();
+  }, [id, loading]);
+
+  const detailHref = (practiceId: Practice["id"]) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("id", String(practiceId));
+    return `/history?${params}`;
+  };
+
+  const openDetail = (href: string, practiceId: Practice["id"]) => {
+    returnFocus.current = `history-practice-${practiceId}`;
+    window.history.pushState({ fromHistory: true }, "", href);
+  };
+
+  const backToList = () => {
+    if (window.history.state?.fromHistory) {
+      window.history.back();
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("id");
+    returnFocus.current = "history-heading";
+    window.history.replaceState(null, "", url);
+  };
+
+  return { id, detailHref, openDetail, backToList };
+}
+
+export function HistoryList() {
   const [practices, setPractices] = useState<Practice[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -98,6 +230,7 @@ export function HistoryList() {
   const [pending, setPending] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
   const [selected, setSelected] = useState<Practice | null>(null);
+  const { id, detailHref, openDetail, backToList } = useHistoryNavigation(loading);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,8 +254,8 @@ export function HistoryList() {
     return () => { cancelled = true; };
   }, [loadAttempt]);
 
-  if (id) {
-    return <HistoryDetail id={id}  />;
+  if (id !== null) {
+    return <HistoryDetail key={id} id={id} onBack={backToList} />;
   }
 
   const retryLoad = () => {
@@ -158,7 +291,7 @@ export function HistoryList() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-8 sm:py-10">
       <header>
-        <h1 ref={heading} tabIndex={-1} className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1 id="history-heading" ref={heading} tabIndex={-1} className="text-3xl font-bold tracking-tight sm:text-4xl">
           Riwayat Latihan
         </h1>
         {!loading && !loadError && practices.length > 0 && (
@@ -166,62 +299,19 @@ export function HistoryList() {
         )}
       </header>
 
-      {loading ? (
-        <div role="status" className="grid gap-3">
-          <span className="sr-only">Memuat riwayat latihan</span>
-          {[0, 1, 2].map((index) => (
-            <div key={index} aria-hidden="true" className="h-19 animate-pulse rounded-2xl bg-surface-muted" />
-          ))}
-        </div>
-      ) : loadError ? (
-        <StatusCard
-          inset
-          title="Gagal Memuat Riwayat"
-          description="Penyimpanan browser tidak dapat dibaca. Silakan coba lagi."
-        >
-          <button
-            type="button"
-            onClick={retryLoad}
-            className="min-h-11 cursor-pointer rounded-xl bg-primary px-5 py-3
-              text-sm font-semibold text-on-primary hover:brightness-110"
-          >
-            Coba lagi
-          </button>
-        </StatusCard>
-      ) : practices.length === 0 ? (
-        <StatusCard
-          inset
-          title="Belum Ada Riwayat"
-          description="Skor dari latihan yang selesai akan tersimpan di sini."
-        >
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center rounded-xl bg-primary px-5 py-3
-              text-sm font-semibold text-on-primary hover:brightness-110"
-          >
-            Mulai latihan
-          </Link>
-        </StatusCard>
-      ) : (
-        <ul role="list" className="divide-y divide-line rounded-2xl border border-line bg-surface p-1">
-          {practices.map((practice, index) => (
-            <HistoryRow
-              key={practice.id ?? index}
-              practice={practice}
-              onClick={() => {
-                const params = new URLSearchParams(searchParams.toString());
-                params.set('id', `${practice.id}`);
-                window.history.pushState({ fromHistory: true }, '', `?${params.toString()}`)
-              }}
-              onDelete={() => {
-                if (practice.id === undefined || deleting.current) return;
-                setDeleteError(false);
-                setSelected(practice);
-              }}
-            />
-          ))}
-        </ul>
-      )}
+      <HistoryListContent
+        practices={practices}
+        loading={loading}
+        loadError={loadError}
+        retryLoad={retryLoad}
+        detailHref={detailHref}
+        openDetail={openDetail}
+        selectForDeletion={(practice) => {
+          if (practice.id === undefined || deleting.current) return;
+          setDeleteError(false);
+          setSelected(practice);
+        }}
+      />
 
       <Alert
         show={selected !== null}

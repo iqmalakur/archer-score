@@ -242,7 +242,7 @@ test("settings changes preserve the active snapshot and recorded miss positions 
   expect(practice.userScores).toEqual([[0, 6]]);
   await restart.click();
   await expect(page.getByRole("heading", { name: "Siapkan latihan" })).toBeVisible();
-  await page.goto(`/history/${practice.id}`);
+  await page.goto(`/history?id=${practice.id}`);
   await expect(page.locator('[data-arrow-id="1:1"]')).toBeVisible();
   await expect(page.getByText("Pilihan skor target", { exact: true })).toBeVisible();
   await expect(missNote).toHaveCount(0);
@@ -374,7 +374,7 @@ test("damaged spatial history reports an error without discarding the record", a
     };
   }));
 
-  await page.goto("/history/1");
+  await page.goto("/history?id=1");
 
   await expect(page.getByRole("heading", { name: "Gagal Memuat Riwayat" })).toBeVisible();
   expect((await records(page)).practices[0].ends?.[0][0]).toMatchObject({ score: 99 });

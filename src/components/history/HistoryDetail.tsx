@@ -8,17 +8,11 @@ import { PracticeEnds, PracticeInfo, PracticeResult } from "@/components/Practic
 import { StatusCard } from "@/components/StatusCard";
 import { PracticeDate } from "./PracticeDate";
 
-function HistoryBackLink() {
+function HistoryBackButton({ onBack }: { onBack: () => void }) {
   return (
     <button
       type="button"
-      onClick={() => {
-        if (window.history.state?.fromHistory) {
-          window.history.back();
-        } else {
-          window.history.replaceState(null, '', '/history');
-        }
-      }}
+      onClick={onBack}
       className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl px-3 text-sm font-semibold
         text-primary-dark hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-4
         focus-visible:outline-primary dark:text-primary cursor-pointer"
@@ -28,7 +22,7 @@ function HistoryBackLink() {
   );
 }
 
-export const HistoryDetail = ({ id }: { id: string }) => {
+export const HistoryDetail = ({ id, onBack }: { id: string; onBack: () => void }) => {
   const practiceId = Number(id);
   const isValidId = /^\d+$/.test(id) && Number.isSafeInteger(practiceId) && practiceId > 0;
   const [practice, setPractice] = useState<Practice | null>(null);
@@ -74,7 +68,7 @@ export const HistoryDetail = ({ id }: { id: string }) => {
   if (failure) {
     return (
       <StatusCard title={failure.title} description={failure.description}>
-        <HistoryBackLink />
+        <HistoryBackButton onBack={onBack} />
       </StatusCard>
     );
   }
@@ -82,7 +76,7 @@ export const HistoryDetail = ({ id }: { id: string }) => {
   if (loading || !practice) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
-        <HistoryBackLink />
+        <HistoryBackButton onBack={onBack} />
         <div role="status" aria-live="polite">
           <LoadingScreen />
         </div>
@@ -94,7 +88,7 @@ export const HistoryDetail = ({ id }: { id: string }) => {
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-8 sm:py-10">
       <header>
         <div className="-mx-3 mb-2">
-          <HistoryBackLink />
+          <HistoryBackButton onBack={onBack} />
         </div>
         <h1 className="wrap-anywhere text-3xl font-bold tracking-tight sm:text-4xl">
           {getPracticeTitle(practice)}

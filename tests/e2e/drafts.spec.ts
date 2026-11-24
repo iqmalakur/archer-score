@@ -106,7 +106,7 @@ test("removed arrows require explicit placement rather than automatic misses", a
   await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
   expect((await records(page)).practices[0].userScores).toEqual([[0, 0]]);
   expect(await storedDraft(page)).toBeNull();
-  await page.goto("/history/1");
+  await page.goto("/history?id=1");
   await expect(page.getByRole("region", { name: "Rincian Rambahan" }).getByText("Miss", { exact: true }))
     .toHaveCount(2);
 });

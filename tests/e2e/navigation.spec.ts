@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { resume, storedDraft } from "./helpers";
+import { draft, finish, resume, seedDraft, storedDraft } from "./helpers";
 
 function mainNavigation(page: Page) {
   return page.getByRole("navigation", { name: "Navigasi utama" });
@@ -82,4 +82,71 @@ test("desktop navigation supports keyboard focus and preserves the selected them
   await page.reload();
 
   await expect(root).toHaveAttribute("data-theme", "dark");
+});
+
+test("history detail links support Back and Forward and restore row focus", async ({ page }) => {
+  await seedDraft(page);
+  await resume(page);
+  await finish(page);
+  await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
+  await mainNavigation(page).getByRole("link", { name: "Riwayat", exact: true }).click();
+  const row = page.getByRole("link", { name: "Lihat detail Latihan uji" });
+  const detail = page.getByRole("heading", { name: "Latihan uji", exact: true });
+  const documents: string[] = [];
+  page.on("request", (request) => {
+    if (request.isNavigationRequest()) documents.push(request.url());
+  });
+
+  await expect(row).toHaveAttribute("href", "/history?id=1");
+  await row.press("Enter");
+  await expect(page).toHaveURL("/history?id=1");
+  await expect(detail).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL("/history");
+  await expect(row).toBeFocused();
+
+  await page.goForward();
+  await expect(detail).toBeVisible();
+  await page.getByRole("button", { name: "Kembali ke Riwayat" }).click();
+  await expect(page).toHaveURL("/history");
+  await expect(row).toBeFocused();
+  expect(documents).toEqual([]);
+});
+
+test("direct history detail validates query changes and returns to the list", async ({ page }) => {
+  const second = {
+    ...draft,
+    sessionId: "a588bb53-2552-4bf4-a814-c31fac4ec482",
+    title: "Latihan kedua",
+  };
+
+  for (const practice of [draft, second]) {
+    await seedDraft(page, practice);
+    await resume(page);
+    await finish(page);
+    await expect(page.getByRole("heading", { name: "Hasil Latihan", exact: true })).toBeVisible();
+  }
+
+  await page.goto("/setting");
+  await page.goto("/history?id=");
+  const detail = page.getByRole("heading", { name: "Latihan uji", exact: true });
+
+  await expect(page.getByRole("heading", { name: "ID Riwayat Tidak Valid" })).toBeVisible();
+  await page.evaluate(() => history.replaceState(null, "", "/history?id=1"));
+  await expect(detail).toBeVisible();
+
+  await page.evaluate(() => history.replaceState(null, "", "/history?id=2"));
+  await expect(page.getByRole("heading", { name: "Latihan kedua", exact: true })).toBeVisible();
+  await expect(detail).toHaveCount(0);
+
+  await page.evaluate(() => history.replaceState(null, "", "/history?id=3"));
+  await expect(page.getByRole("heading", { name: "Riwayat Tidak Ditemukan" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Kembali ke Riwayat" }).click();
+  await expect(page).toHaveURL("/history");
+  await expect(page.getByRole("heading", { name: "Riwayat Latihan" })).toBeFocused();
+
+  await page.goBack();
+  await expect(page).toHaveURL("/setting");
 });

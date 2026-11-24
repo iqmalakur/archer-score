@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Halaman belum tersedia offline · Manah</title>
+    <script>
+      let theme;
+
+      try {
+        theme = localStorage.getItem("theme");
+      } catch {
+        // Use the device theme when storage is unavailable.
+      }
+
+      if (theme !== "light" && theme !== "dark") {
+        theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+
+      document.documentElement.dataset.theme = theme;
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f4ec;
+        --surface: #fffdf7;
+        --surface-muted: #eceee5;
+        --ink: #182a21;
+        --ink-muted: #536359;
+        --line: #dcdfd3;
+        --primary: #28583e;
+        --primary-soft: #e0edda;
+        --on-primary: #fffdf7;
+      }
+
+      [data-theme="dark"] {
+        color-scheme: dark;
+        --bg: #101c17;
+        --surface: #182820;
+        --surface-muted: #21362b;
+        --ink: #edf1e7;
+        --ink-muted: #a9bcaf;
+        --line: #34483c;
+        --primary: #a6cea9;
+        --primary-soft: #294c37;
+        --on-primary: #172d20;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        line-height: 1.5;
+      }
+
+      main {
+        margin-inline: auto;
+        width: min(100%, 48rem);
+        padding: 1.5rem 1rem;
+      }
+
+      section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        padding: 2.5rem 1.25rem;
+        background: var(--surface);
+        text-align: center;
+      }
+
+      .mark,
+      .mark span {
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+      }
+
+      .mark {
+        width: 3.25rem;
+        height: 3.25rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+        background: var(--primary-soft);
+      }
+
+      .mark span {
+        width: 2rem;
+        height: 2rem;
+        border: 1px solid color-mix(in srgb, var(--primary) 50%, transparent);
+      }
+
+      .mark span::after {
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 50%;
+        background: var(--primary);
+        content: "";
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        line-height: 1.4;
+        letter-spacing: -0.025em;
+      }
+
+      p {
+        max-width: 28rem;
+        margin: 0.5rem 0 0;
+        color: var(--ink-muted);
+        font-size: 0.875rem;
+        line-height: 1.625;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.75rem;
+      }
+
+      .actions > * {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.75rem;
+        border: 1px solid transparent;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1.25rem;
+        font: inherit;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button {
+        background: var(--primary);
+        color: var(--on-primary);
+      }
+
+      button:hover {
+        filter: brightness(1.1);
+      }
+
+      .actions > a {
+        border-color: var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .actions > a:hover {
+        background: var(--surface-muted);
+      }
+
+      .actions > :focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      @media (min-width: 40rem) {
+        main {
+          padding: 2.5rem 2rem;
+        }
+
+        section {
+          padding: 3.5rem 2.5rem;
+        }
+
+        h1 {
+          font-size: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section aria-labelledby="offline-heading">
+        <span class="mark" aria-hidden="true"><span></span></span>
+
+        <div>
+          <h1 id="offline-heading">Halaman belum tersedia offline</h1>
+          <p>Sambungkan kembali ke internet, lalu coba muat ulang halaman ini.</p>
+        </div>
+
+        <div class="actions">
+          <button id="reload" type="button">Muat Ulang</button>
+          <a href="/">Kembali ke Latihan</a>
+        </div>
+      </section>
+    </main>
+    <script>
+      document.getElementById("reload").addEventListener("click", () => location.reload());
+    </script>
+  </body>
+</html>

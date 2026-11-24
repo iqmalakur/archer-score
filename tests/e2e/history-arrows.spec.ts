@@ -74,7 +74,7 @@ test("history shares one idle renderer across twenty ends and releases it on nav
   await expect(resultEnds.locator("article")).toHaveCount(20);
   const result = await resultSections.allTextContents();
 
-  await page.goto("/history/1");
+  await page.goto("/history?id=1");
 
   const section = page.locator('[aria-labelledby="ends-heading"]');
   await expect(section).toHaveAttribute("data-arrow-renderer", "ready");
@@ -89,7 +89,7 @@ test("history shares one idle renderer across twenty ends and releases it on nav
   await page.setViewportSize({ width: 390, height: 844 });
   const historyTab = page.getByRole("navigation", { name: "Navigasi utama" })
     .getByRole("link", { name: "Riwayat" });
-  await expect(historyTab).toHaveAttribute("aria-current", "location");
+  await expect(historyTab).toHaveAttribute("aria-current", "page");
   const last = section.locator('[data-history-end="19"]');
   await last.scrollIntoViewIfNeeded();
   await last.screenshot({ path: "test-results/history-arrows-mobile.png" });
@@ -115,7 +115,7 @@ test("history shares one idle renderer across twenty ends and releases it on nav
   expect(await counts()).toEqual(before);
   expect(await records(page)).toEqual(saved);
 
-  await page.getByRole("link", { name: "Kembali ke Riwayat" }).click();
+  await page.getByRole("button", { name: "Kembali ke Riwayat" }).click();
 
   await expect(page.getByRole("heading", { name: "Riwayat Latihan" })).toBeVisible();
   await expect(historyTab).toHaveAttribute("aria-current", "page");
@@ -133,7 +133,7 @@ test("history keeps spatial markers and legacy scores when WebGL is unavailable"
     } as typeof original;
   });
 
-  await page.goto("/history/1");
+  await page.goto("/history?id=1");
 
   const section = page.locator('[aria-labelledby="ends-heading"]');
   await expect(section).toHaveAttribute("data-arrow-renderer", "unavailable");

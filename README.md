@@ -68,6 +68,14 @@ Escape is blocked while a save or deletion is in progress.
   has already been overwritten cannot have its original configuration recovered.
   If draft cleanup fails after saving, the completion receipt prevents resuming it.
 
+## Offline history
+
+Open Manah online first so it can cache the Practice and History pages and their required assets.
+Once the cache is ready, you can open `/history` and reload details such as
+`/history?id=1` offline in the browser that saved the practice.
+If a page is unavailable offline, select **Kembali ke Latihan** to open the cached Practice page.
+To retry the unavailable page, reconnect and select **Muat Ulang**.
+
 ## Checks
 
 Install the browser once after installing dependencies:
@@ -98,8 +106,7 @@ src/
 ├── app/                     # Next.js App Router
 │   ├── fonts/               # Bundled Inter font and license
 │   ├── page.tsx             # / — setup, scoring, results
-│   ├── history/page.tsx     # /history — saved practices
-│   ├── history/[id]/page.tsx # /history/:id — practice detail
+│   ├── history/page.tsx     # /history and /history?id=1 — list and detail
 │   ├── setting/page.tsx     # /setting — target colors and scores
 │   └── arrow-preview/      # /arrow-preview — reusable petung model preview
 ├── components/
