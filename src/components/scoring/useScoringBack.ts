@@ -23,7 +23,8 @@ export function useScoringBack(
       return;
     }
 
-    if (entry.sessionId === sessionId && onBack()) pushScoringEntry(sessionId);
+    // Pushing a new entry here can make Chromium skip setup on the next Back.
+    if (entry.sessionId === sessionId && onBack()) window.history.forward();
   });
 
   useEffect(() => {
