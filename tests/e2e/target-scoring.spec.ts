@@ -12,7 +12,7 @@ async function emptySession(page: Page, arrowCount = 3, endCount = 1) {
 test.describe("short phone scoring", () => {
   test.use({ viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true });
 
-  test("session actions stay reachable above the tabs without scrolling", async ({ page }) => {
+  test("session actions stay reachable on a short phone with hidden tabs", async ({ page }) => {
     await emptySession(page, 1, 2);
     const box = page.getByTestId("scoring-box");
     const next = page.getByRole("button", { name: "Lanjut", exact: true });
@@ -25,17 +25,17 @@ test.describe("short phone scoring", () => {
     async function tapVisible(control: Locator) {
       await expect(control).toBeVisible();
       const bounds = (await control.boundingBox())!;
-      const nav = (await tabs.boundingBox())!;
       const point = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
 
       expect(bounds.y).toBeGreaterThanOrEqual(0);
-      expect(bounds.y + bounds.height).toBeLessThanOrEqual(nav.y);
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(568);
       expect(await control.evaluate((element, { x, y }) =>
         element.contains(document.elementFromPoint(x, y)), point)).toBe(true);
 
       await page.touchscreen.tap(point.x, point.y);
     }
 
+    await expect(tabs).toBeHidden();
     await expect(next).toBeDisabled();
     await expect.poll(async () => {
       const board = (await box.boundingBox())!;
@@ -59,7 +59,6 @@ test.describe("short phone scoring", () => {
     expect(await scrollPosition()).toBe(0);
 
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await expect.poll(scrollPosition).toBeGreaterThan(0);
     await tapVisible(page.getByRole("button", { name: "Reset rambahan", exact: true }));
 
     const reset = page.getByRole("dialog", { name: "Reset rambahan ini?" });
@@ -70,6 +69,7 @@ test.describe("short phone scoring", () => {
     const save = page.getByRole("dialog", { name: "Selesaikan skoring?" });
     await save.getByRole("button", { name: "Selesai", exact: true }).tap();
     await expect(page.getByRole("heading", { name: "Hasil Latihan" })).toBeVisible();
+    await expect(tabs).toBeVisible();
   });
 });
 

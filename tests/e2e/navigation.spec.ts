@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { draft, finish, records, resume, seedDraft, storedDraft } from "./helpers";
+import { draft, fault, finish, installFaults, records, resume, seedDraft, storedDraft } from "./helpers";
 
 function mainNavigation(page: Page) {
   return page.getByRole("navigation", { name: "Navigasi utama" });
@@ -13,7 +13,7 @@ async function expectNoHorizontalScroll(page: Page) {
 test.describe("phone navigation", () => {
   test.use({ viewport: { width: 320, height: 667 }, isMobile: true, hasTouch: true });
 
-  test("keeps tabs and controls reachable and restores an active draft", async ({ page }) => {
+  test("hides tabs during scoring and keeps the draft through reload and direct navigation", async ({ page }) => {
     await page.goto("/");
     const nav = mainNavigation(page);
     const practice = nav.getByRole("link", { name: "Latihan", exact: true });
@@ -41,9 +41,23 @@ test.describe("phone navigation", () => {
     await page.getByTestId("scoring-box").tap();
     await expect(page.getByRole("button", { name: /^Panah 1, Skor / })).toBeVisible();
     const saved = await storedDraft(page);
+    await expect(nav).toBeHidden();
     await expectNoHorizontalScroll(page);
 
-    await history.tap();
+    const brand = page.getByRole("banner").getByRole("link", { name: "Manah", exact: true });
+    const cancelPractice = page.getByRole("dialog", { name: "Batalkan latihan?" });
+    await brand.tap();
+    await expect(cancelPractice).toContainText("Skoring sedang berjalan");
+    await cancelPractice.getByRole("button", { name: "Batal", exact: true }).tap();
+    await expect(page.getByRole("heading", { name: "Rambahan 1 dari 4" })).toBeVisible();
+    expect(await storedDraft(page)).toEqual(saved);
+
+    await page.reload();
+    await resume(page);
+    await expect(nav).toBeHidden();
+    expect(await storedDraft(page)).toEqual(saved);
+
+    await page.goto("/history");
 
     await expect(history).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("heading", { name: "Belum Ada Riwayat" })).toBeVisible();
@@ -52,8 +66,14 @@ test.describe("phone navigation", () => {
     await page.goBack();
     await resume(page);
 
-    await expect(practice).toHaveAttribute("aria-current", "page");
+    await expect(nav).toBeHidden();
     expect(await storedDraft(page)).toEqual(saved);
+
+    await brand.tap();
+    await cancelPractice.getByRole("button", { name: "Ya, batalkan" }).tap();
+    await expect(page.getByRole("heading", { name: "Siapkan latihan" })).toBeVisible();
+    await expect(practice).toHaveAttribute("aria-current", "page");
+    expect(await storedDraft(page)).toBeNull();
   });
 });
 
@@ -82,6 +102,42 @@ test("desktop navigation supports keyboard focus and preserves the selected them
   await page.reload();
 
   await expect(root).toHaveAttribute("data-theme", "dark");
+});
+
+test("desktop scoring navigation waits for successful draft cancellation", async ({ page }) => {
+  await installFaults(page);
+  await seedDraft(page);
+  await resume(page);
+  const nav = mainNavigation(page);
+  const dialog = page.getByRole("dialog", { name: "Batalkan latihan?" });
+  const currentEnd = page.getByRole("heading", { name: "Rambahan 1 dari 1" });
+
+  for (const name of ["Latihan", "Riwayat", "Pengaturan"]) {
+    await nav.getByRole("link", { name, exact: true }).click();
+    await expect(dialog).toContainText("Skoring sedang berjalan");
+    await dialog.getByRole("button", { name: "Batal", exact: true }).click();
+    await expect(page).toHaveURL("/");
+    await expect(currentEnd).toBeVisible();
+    expect(await storedDraft(page)).toEqual(draft);
+  }
+
+  await nav.getByRole("link", { name: "Riwayat", exact: true }).click();
+  await fault(page, "cleanup");
+  await dialog.getByRole("button", { name: "Ya, batalkan" }).click();
+  await expect(dialog).toContainText("Gagal menghapus draf");
+  await expect(page).toHaveURL("/");
+  expect(await storedDraft(page)).toEqual(draft);
+
+  await fault(page);
+  await dialog.getByRole("button", { name: "Coba lagi" }).click();
+  await expect(page).toHaveURL("/history");
+  await expect(page.getByRole("heading", { name: "Belum Ada Riwayat" })).toBeVisible();
+  expect(await storedDraft(page)).toBeNull();
+
+  await page.goBack();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("heading", { name: "Siapkan latihan" })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 test("history detail links support Back and Forward and restore row focus", async ({ page }) => {

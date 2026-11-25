@@ -1,13 +1,13 @@
 import Image from "next/image";
-import Link from "next/link";
 import { ThemeToggle } from "../ThemeToggle";
 import { Navbar } from "./Navbar";
+import { ScoringNavigationLink } from "./ScoringNavigation";
 
 export const Header = () => {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-background pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-15 max-w-5xl items-center gap-4 px-4 sm:px-8">
-        <Link
+        <ScoringNavigationLink
           href="/"
           className="mr-auto flex min-h-11 shrink-0 items-center gap-2 rounded-lg text-xl font-bold
             tracking-tight text-ink focus-visible:outline-2 focus-visible:outline-offset-2
@@ -23,7 +23,7 @@ export const Header = () => {
             unoptimized
           />
           Manah
-        </Link>
+        </ScoringNavigationLink>
         <Navbar />
         <ThemeToggle />
       </div>

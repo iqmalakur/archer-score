@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navItem } from "@/data/nav-item";
+import { ScoringNavigationLink } from "./ScoringNavigation";
 
 export const NavLinks = () => {
   const pathname = usePathname();
@@ -17,7 +17,7 @@ export const NavLinks = () => {
           (item.url !== "/" && pathname.startsWith(`${item.url}/`));
 
         return (
-          <Link
+          <ScoringNavigationLink
             key={item.url}
             href={item.url}
             aria-current={isActive ? current : undefined}
@@ -49,7 +49,7 @@ export const NavLinks = () => {
               </svg>
             </span>
             {item.label}
-          </Link>
+          </ScoringNavigationLink>
         );
       })}
     </>

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
+import { ScoringNavigationProvider } from "@/components/layout/ScoringNavigation";
 import SwRegister from "./sw-register";
 
 const inter = localFont({
@@ -27,8 +28,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col transition-colors duration-300">
-        <Header />
-        {children}
+        <ScoringNavigationProvider>
+          <Header />
+          {children}
+        </ScoringNavigationProvider>
         <SwRegister />
       </body>
     </html>

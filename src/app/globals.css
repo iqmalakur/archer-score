@@ -74,6 +74,16 @@ body {
   }
 }
 
+@media (width < 48rem) {
+  html:has(.scoring-session) {
+    --tab-bar-height: 0px;
+  }
+
+  html:has(.scoring-session) .app-navigation {
+    display: none;
+  }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

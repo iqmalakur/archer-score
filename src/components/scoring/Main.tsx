@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Alert } from "@/components/Alert";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { PracticeEnds, PracticeResult } from "@/components/PracticeDetails";
+import { useScoringNavigationGuard } from "@/components/layout/ScoringNavigation";
 import { completeEnd } from "@/lib/target-session";
 import { Setup } from "./Setup";
 import { End } from "./End";
@@ -11,6 +13,22 @@ import { useScoringBack } from "./useScoringBack";
 import { useScoringSession } from "./useScoringSession";
 
 type Scoring = ReturnType<typeof useScoringSession>;
+
+function confirmPracticeCancellation(scoring: Scoring, afterCancel?: () => void) {
+  scoring.setDialog({
+    title: "Batalkan latihan?", type: "danger",
+    message: afterCancel
+      ? "Skoring sedang berjalan. Jika latihan dibatalkan, semua skor sesi ini akan dihapus."
+      : "Semua skor pada sesi latihan ini akan dihapus.",
+    confirmText: "Ya, batalkan", cancelText: "Batal",
+    failureMessage: "Gagal menghapus draf. Skor tetap tersedia di halaman ini. Silakan coba lagi.",
+    onConfirm: () => {
+      if (!scoring.discard()) throw new Error("Could not discard the scoring draft.");
+      scoring.restart();
+      afterCancel?.();
+    },
+  });
+}
 
 function SessionScreen({
   scoring,
@@ -125,6 +143,7 @@ function StorageMessages({ scoring }: { scoring: Scoring }) {
 export function Main() {
   const scoring = useScoringSession();
   const { session, result, dialog, initial } = scoring;
+  const router = useRouter();
   const main = useRef<HTMLElement>(null);
   const [aiming, setAiming] = useState(false);
 
@@ -144,26 +163,28 @@ export function Main() {
     if (session.currentEnd > 1) {
       scoring.previousEnd();
     } else {
-      scoring.setDialog({
-        title: "Batalkan latihan?", type: "danger",
-        message: "Semua skor pada sesi latihan ini akan dihapus.",
-        confirmText: "Ya, batalkan", cancelText: "Batal",
-        failureMessage: "Gagal menghapus draf. Skor tetap tersedia di halaman ini. Silakan coba lagi.",
-        onConfirm: () => {
-          if (!scoring.discard()) throw new Error("Could not discard the scoring draft.");
-          scoring.restart();
-        },
-      });
+      confirmPracticeCancellation(scoring);
     }
     return true;
   };
 
-  useScoringBack(
+  const releaseScoringEntry = useScoringBack(
     Boolean(initial),
     session?.sessionId,
     initial?.blocked ? initial.session?.sessionId : undefined,
     goBack,
   );
+
+  useScoringNavigationGuard(Boolean(session && !result), (href) => {
+    if (scoring.pending || dialog) return;
+
+    confirmPracticeCancellation(scoring, () => {
+      if (href === "/") return;
+
+      if (releaseScoringEntry()) router.replace(href);
+      else router.push(href);
+    });
+  });
 
   useEffect(() => {
     if (result && !dialog) {

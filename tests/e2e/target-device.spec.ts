@@ -123,6 +123,8 @@ test("arrows cast shadows from release, idle after impact, and free buffers on n
   await page.getByTestId("scoring-box").screenshot({ path: "test-results/scoring-arrow-shadow.png" });
 
   await page.getByRole("link", { name: "Pengaturan", exact: true }).click();
+  const cancel = page.getByRole("dialog", { name: "Batalkan latihan?" });
+  await cancel.getByRole("button", { name: "Ya, batalkan" }).click();
 
   await expect(page.getByRole("heading", { name: "Pengaturan target" })).toBeVisible();
   expect((await counts()).deletions).toBeGreaterThan(before.deletions);

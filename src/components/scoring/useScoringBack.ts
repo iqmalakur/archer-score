@@ -48,4 +48,13 @@ export function useScoringBack(
 
     if (entry?.active && entry.sessionId !== restorableId) window.history.back();
   }, [loaded, restorableId, sessionId]);
+
+  return () => {
+    const entry: ScoringEntry | undefined = window.history.state?.scoringBack;
+    if (!entry?.active || entry.sessionId !== sessionId) return false;
+
+    // Let route navigation replace the active entry without a competing Back.
+    window.history.replaceState(null, "");
+    return true;
+  };
 }
