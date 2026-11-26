@@ -1,4 +1,6 @@
-# Manah
+# Panara
+
+*Setiap panah punya arah.*
 
 A web app for recording archery practice scores. Configure ends (rambahan)
 and arrows per end, place arrows on a target, and review your local history.
@@ -70,7 +72,7 @@ Escape is blocked while a save or deletion is in progress.
 
 ## Offline history
 
-Open Manah online first so it can cache the Practice and History pages and their required assets.
+Open Panara online first so it can cache the Practice and History pages and their required assets.
 Once the cache is ready, you can open `/history` and reload details such as
 `/history?id=1` offline in the browser that saved the practice.
 If a page is unavailable offline, select **Kembali ke Latihan** to open the cached Practice page.

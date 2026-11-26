@@ -14,7 +14,7 @@ export const Header = () => {
             focus-visible:outline-primary"
         >
           <Image
-            src="/brand/manah-mark.svg"
+            src="/brand/panara-mark.svg"
             alt=""
             width={36}
             height={36}
@@ -22,7 +22,7 @@ export const Header = () => {
             className="rounded-xl bg-primary-soft"
             unoptimized
           />
-          Manah
+          Panara
         </ScoringNavigationLink>
         <Navbar />
         <ThemeToggle />

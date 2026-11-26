@@ -95,7 +95,7 @@ test("a failed asset refresh retains the usable History document", async ({ cont
   await expect(page.getByRole("heading", { name: "Belum Ada Riwayat" })).toBeVisible();
 });
 
-test("the offline status page follows Manah theme and retries the original detail", async ({ context, page }) => {
+test("the offline status page follows Panara theme and retries the original detail", async ({ context, page }) => {
   await savePractice(page);
   await waitForHistoryCache(page);
   await page.evaluate(() => caches.delete("manah-history-v1"));
@@ -120,6 +120,7 @@ test("the offline status page follows Manah theme and retries the original detai
     const response = await page.goto(detailUrl);
     expect(response?.status()).toBe(503);
     expect(response?.fromServiceWorker()).toBe(true);
+    await expect(page).toHaveTitle("Halaman belum tersedia offline · Panara");
     await expect(offlineHeading).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme.expected);
     await expect(page.locator("body")).toHaveCSS("background-color", theme.background);

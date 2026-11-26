@@ -14,7 +14,7 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Manah",
+  title: "Panara",
   description:
     "Lacak dan hitung skor latihan panahan Anda dengan mudah — rambahan, skor target, dan status kelulusan.",
 };

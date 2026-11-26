@@ -44,7 +44,7 @@ test.describe("phone navigation", () => {
     await expect(nav).toBeHidden();
     await expectNoHorizontalScroll(page);
 
-    const brand = page.getByRole("banner").getByRole("link", { name: "Manah", exact: true });
+    const brand = page.getByRole("banner").getByRole("link", { name: "Panara", exact: true });
     const cancelPractice = page.getByRole("dialog", { name: "Batalkan latihan?" });
     await brand.tap();
     await expect(cancelPractice).toContainText("Skoring sedang berjalan");
