@@ -147,7 +147,14 @@ export function TargetSettings() {
           <Link className="scoring-text-link" href="/">← Kembali ke latihan</Link>
         </form>
       </div>
-      <Link className="scoring-text-link" href="/arrow-preview">Lihat model panah bambu petung →</Link>
+      <div className="flex flex-wrap gap-x-4">
+        <Link className="scoring-text-link" href="/arrow-preview">
+          Lihat model panah bambu petung →
+        </Link>
+        <Link className="scoring-text-link" href="/landing">
+          Tentang Panara
+        </Link>
+      </div>
     </main>
   );
 }

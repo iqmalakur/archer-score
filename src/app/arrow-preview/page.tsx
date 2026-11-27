@@ -5,6 +5,7 @@ import "./preview.css";
 
 export const metadata: Metadata = {
   title: "Panah Bambu Petung — Panara",
+  robots: { index: false, follow: true },
 };
 
 export default function ArrowPreviewPage() {

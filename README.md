@@ -27,6 +27,10 @@ pnpm build
 pnpm start
 ```
 
+Set `SITE_URL` to the public origin before running `pnpm build` when deploying
+on another domain. Canonical URLs, social cards, and the sitemap use
+`https://panara.akur.dev` by default.
+
 ## Usage
 
 1. Open **Pengaturan** to customize ring count, colors, and scores. Ring scores must be positive integers.
@@ -108,6 +112,7 @@ src/
 ├── app/                     # Next.js App Router
 │   ├── fonts/               # Bundled Inter font and license
 │   ├── page.tsx             # / — setup, scoring, results
+│   ├── landing/             # /landing — public product overview
 │   ├── history/page.tsx     # /history and /history?id=1 — list and detail
 │   ├── setting/page.tsx     # /setting — target colors and scores
 │   └── arrow-preview/      # /arrow-preview — reusable petung model preview

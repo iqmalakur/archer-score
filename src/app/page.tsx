@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import { Main } from "@/components/scoring/Main";
+
+export const metadata: Metadata = {
+  title: "Mulai Latihan Panahan | Panara",
+  description:
+    "Atur jarak, jumlah rambahan, dan jumlah panah untuk memulai serta mencatat skor sesi latihan panahan Anda.",
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
+};
 
 export default function Home() {
   return (

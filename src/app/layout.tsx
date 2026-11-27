@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { ScoringNavigationProvider } from "@/components/layout/ScoringNavigation";
+import { SITE_ORIGIN } from "@/lib/site-origin";
 import SwRegister from "./sw-register";
 
 const inter = localFont({
@@ -14,6 +15,7 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_ORIGIN),
   title: "Panara",
   description:
     "Lacak dan hitung skor latihan panahan Anda dengan mudah — rambahan, skor target, dan status kelulusan.",

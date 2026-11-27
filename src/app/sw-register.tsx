@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 const OFFLINE_PAGES = [
@@ -37,16 +38,19 @@ async function preparePage(path: string, cacheName: string) {
 }
 
 export default function SwRegister() {
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
+  const isLanding = usePathname() === "/landing";
 
+  useEffect(() => {
+    if (isLanding || process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
+
+    let active = true;
     const ready = navigator.serviceWorker
       .register("/sw.js", { scope: "/", updateViaCache: "none" })
       .then(() => navigator.serviceWorker.ready)
       .catch((error) => console.warn("Could not register the service worker:", error));
 
     const prepare = async () => {
-      if (!navigator.onLine || !await ready) return;
+      if (!navigator.onLine || !await ready || !active) return;
 
       await Promise.all(OFFLINE_PAGES.map(async ({ path, cacheName, label }) => {
         try {
@@ -60,8 +64,11 @@ export default function SwRegister() {
     window.addEventListener("online", prepare);
     prepare();
 
-    return () => window.removeEventListener("online", prepare);
-  }, []);
+    return () => {
+      active = false;
+      window.removeEventListener("online", prepare);
+    };
+  }, [isLanding]);
 
   return null;
 }

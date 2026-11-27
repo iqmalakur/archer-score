@@ -12,7 +12,7 @@ test("the Panara logo links to practice and the browser uses its SVG icon", asyn
   await brand.click();
 
   await expect(page).toHaveURL("/");
-  await expect(page).toHaveTitle("Panara");
+  await expect(page).toHaveTitle("Mulai Latihan Panahan | Panara");
   await expect(page.getByRole("heading", { name: "Siapkan latihan" })).toBeVisible();
   const icon = page.locator('link[rel="icon"]');
   await expect(icon).toHaveAttribute("type", "image/svg+xml");
